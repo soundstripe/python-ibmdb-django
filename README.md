@@ -16,33 +16,21 @@ forked from python-ibmdb-django
 
 Install Django as per instructions from the Django [http://docs.djangoproject.com/en/dev/topics/install/#installing-an-official-release website].
 
- * For 1.0.2, you need to apply a patch in django in-order to remove Non-standard SQL generation issue. 
- * The patch is located at http://code.djangoproject.com/ticket/9862.
- * You can extract creation.py file from http://code.djangoproject.com/changeset/9703?format=zip&new=9703 and paste it to /django/db/backends/
- * For versions greater than 1.0.2 no patch is required.
-
-## 2. Install DB2 Django adapter (ibm_db_django)  
+## 2. Install pyodbc and the DB2 Django adapter (django-pyodbc-iseries)  
 
 ```  
-$ pip install ibm_db_django  
+$ pip install django-pyodbc-iseries  
 ```
  
 # Tested Operating Systems 
 
- * Ubuntu Linux 7.04 64 bit
+ * Ubuntu Linux 18
  * Win64/Win32 bit
  * Mac OS
 
 # Supported Databases 
 
- * IBM DB2 Database for Linux, Unix and Windows, version 8.2 or higher.
-
-# Future Supported Databases 
-
- * IBM Cloudscape
- * Apache Derby
- * IBM Informix Cheetah version 11.10 onwards
- * Remote connections to i5/OS (iSeries)
+ * IBM Db2 for iSeries
 
 # Testing 
 ```
@@ -58,13 +46,11 @@ $ pip install ibm_db_django
    {{{
    DATABASES = {
       'default': {
-         'ENGINE'     : 'ibm_db_django',
+         'ENGINE'     : 'iseries',
          'NAME'       : 'mydb',
-         'USER'       : 'db2inst1',
-         'PASSWORD'   : 'ibmdb2',
-         'HOST'       : 'localhost',
-         'PORT'       : '50000',
-         'PCONNECT'   :  True,      #Optional property, default is false
+         'USER'       : '<username>',
+         'PASSWORD'   : '<pass>',
+         'HOST'       : 'host/ipaddress',
       }
    }
    }}}
@@ -90,24 +76,4 @@ $ pip install ibm_db_django
 # Database Transactions 
 
  *  Django by default executes without transactions i.e. in auto-commit mode. This default is generally not what you want in web-applications. [http://docs.djangoproject.com/en/dev/topics/db/transactions/ Remember to turn on transaction support in Django]
-
-# Known Limitations of ibm_db_django adapter 
-
- * Non-standard SQL queries are not supported. e.g. "SELECT ? FROM TAB1"
- * dbshell will not work if server is remote and client is DB2 thin client.
- * For updations involving primary/foreign key references, the entries should be made in correct order. Integrity check is always on and thus the primary keys referenced by the foreign keys in the referencing tables should always exist in the parent table.
- * DB2 Timestamps do not support timezone aware information. Thus a Datetime field including tzinfo(timezone aware info) would fail.
-
-# Feedback/Support
-
-  Your feedback is very much appreciated and expected through project ibm-db:
-
- * ibm-db issues reports: https://github.com/ibmdb/python-ibmdb/issues
-
-# Contributing to the ibm_db-django python project
-
-  See [CONTRIBUTING](https://github.com/ibmdb/python-ibmdb-django/blob/master/contributing/CONTRIBUTING.md)
-
-  The developer sign-off should include the reference to the DCO in remarks(example below):
-  DCO 1.1 Signed-off-by: Random J Developer <random@developer.org>
 
