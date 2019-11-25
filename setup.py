@@ -17,7 +17,6 @@
 
 import sys
 
-_IS_JYTHON = sys.platform.startswith('java')
 from setuptools import setup, find_packages
 from distutils.core import setup, Extension
 
