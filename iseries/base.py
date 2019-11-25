@@ -49,7 +49,7 @@ from iseries.creation import DatabaseCreation
 from iseries.introspection import DatabaseIntrospection
 from iseries.operations import DatabaseOperations
 import iseries.pybase as Base
-import ibm_db_dbi as Database
+import pyodbc as Database
 
 # For checking django's version
 from django import VERSION as djangoVersion
@@ -65,7 +65,12 @@ OperationalError = Database.OperationalError
 InternalError = Database.InternalError
 ProgrammingError = Database.ProgrammingError
 NotSupportedError = Database.NotSupportedError
-    
+
+
+version = Database.version.split('.')
+if version < (4, 0, 0):
+    raise ImproperlyConfigured(f'PyODBC 4.0 or later required; you have {version}.')
+
 
 dbms_name = 'dbname'
 
@@ -117,9 +122,7 @@ class DatabaseValidation( BaseDatabaseValidation ):
 class DatabaseWrapper( BaseDatabaseWrapper ):
     
     """
-    This is the base class for DB2 backend support for Django. The under lying 
-    wrapper is IBM_DB_DBI (latest version can be downloaded from http://code.google.com/p/ibm-db/ or
-    http://pypi.python.org/pypi/ibm_db). 
+    This is the base class for DB2 backend support for Django.
     """
     data_types={}
     vendor = 'DB2'
@@ -150,25 +153,15 @@ class DatabaseWrapper( BaseDatabaseWrapper ):
     def __init__( self, *args ):
         super( DatabaseWrapper, self ).__init__( *args )
         self.ops = DatabaseOperations( self )
-        if( djangoVersion[0:2] <= ( 1, 0 ) ):
-            self.client = DatabaseClient()
-        else:
-            self.client = DatabaseClient( self )
-        if( djangoVersion[0:2] <= ( 1, 2 ) ):
-            self.features = DatabaseFeatures()
-        else:
-            self.features = DatabaseFeatures( self )
+        self.client = DatabaseClient( self )
+        self.features = DatabaseFeatures( self )
         self.creation = DatabaseCreation( self )
         
-        if( djangoVersion[0:2] >= ( 1, 8 ) ): 
-            self.data_types=self.creation.data_types
-            self.data_type_check_constraints=self.creation.data_type_check_constraints
+        self.data_types=self.creation.data_types
+        self.data_type_check_constraints=self.creation.data_type_check_constraints
         
         self.introspection = DatabaseIntrospection( self )
-        if( djangoVersion[0:2] <= ( 1, 1 ) ):
-            self.validation = DatabaseValidation()
-        else:
-            self.validation = DatabaseValidation( self )
+        self.validation = DatabaseValidation( self )
         self.databaseWrapper = Base.DatabaseWrapper()
     
     # Method to check if connection is live or not.
@@ -280,8 +273,7 @@ class DatabaseWrapper( BaseDatabaseWrapper ):
         self.connection.set_autocommit( autocommit )
      
     def close( self ):
-        if( djangoVersion[0:2] >= ( 1, 5 ) ):
-            self.validate_thread_sharing()
+        self.validate_thread_sharing()
         if self.connection is not None:
             self.databaseWrapper.close( self.connection )
             self.connection = None
