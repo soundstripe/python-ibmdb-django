@@ -21,46 +21,45 @@ _IS_JYTHON = sys.platform.startswith('java')
 from setuptools import setup, find_packages
 from distutils.core import setup, Extension
 
-PACKAGE = 'ibm_db_django'
-VERSION = __import__('ibm_db_django').__version__
+PACKAGE = 'django-pyodbc-iseries'
+VERSION = __import__('iseries').__version__
 LICENSE = 'Apache License 2.0'
 extra = {}
-if sys.version_info >= (3, ):
+if sys.version_info >= (3,):
     extra['use_2to3'] = True
-    
-setup (
-    name              = PACKAGE,
-    version           = VERSION,
-    license           = LICENSE,
-    platforms         = 'All',
-    install_requires  = _IS_JYTHON and ['django>=1.0.3'] or ['ibm_db>=1.0.3',
-                          'django>=1.0.3'],
-    dependency_links  = _IS_JYTHON and ['http://pypi.python.org/pypi/Django/'] or ['http://pypi.python.org/pypi/ibm_db/',
-                          'http://pypi.python.org/pypi/Django/'],
-    description       = 'DB2 support for Django framework.',
-    long_description  = 'DB2 support for Django framework.',
-    author            = 'Ambrish Bhargava, Tarun Pasrija, Rahul Priyadarshi',
-    author_email      = 'opendev@us.ibm.com',
-    maintainer        = 'IBM Application Development Team',
-    maintainer_email  = 'opendev@us.ibm.com, ibm_db@googlegroups.com',
-    url               = 'http://pypi.python.org/pypi/ibm_db_django/',
-    keywords          = 'django ibm_db_django backends adapter IBM Data Servers database db2',
-    packages          = ['ibm_db_django'],
-    classifiers       = [ _IS_JYTHON and 'Development Status :: 4 - Beta' or 'Development Status :: 5 - Production/Stable',
-                         'Intended Audience :: Developers',
-                         'License :: OSI Approved :: Apache Software License',
-                         'Operating System :: Microsoft :: Windows :: Windows NT/2000',
-                         'Operating System :: Unix',
-                         'Operating System :: POSIX :: Linux',
-                         'Operating System :: MacOS',
-                         'Topic :: Database :: Front-Ends'],
-    data_files        = [ ('', ['./README.md']),
-                          ('', ['./CHANGES']),
-                          ('', ['./LICENSE']) ],
-    zip_safe          = False,
-    include_package_data = True,
-    entry_points = {
-		'django.db.backends': ['ibm_db_django = ibm_db_django']
+
+setup(
+    name=PACKAGE,
+    version=VERSION,
+    license=LICENSE,
+    platforms='All',
+    install_requires=['pyodbc>=4.0.27', 'django>=2.2.0'],
+    dependency_links=['https://pypi.org/project/pyodbc/', 'http://pypi.python.org/pypi/Django/',
+                      'https://www.ibm.com/support/pages/ibm-i-access-client-solutions'],
+    description='Db2 for iSeries support for Django framework.',
+    long_description='Db2 for iSeries support for Django framework.',
+    author='Ambrish Bhargava, Tarun Pasrija, Rahul Priyadarshi, Steven James',
+    author_email='steven@waitforitjames.com',
+    maintainer='Steven James',
+    maintainer_email='steven@waitforitjames.com',
+    url='https://github.com/soundstripe/python-pyodbc-iseries',
+    keywords='django iseries backends adapter IBM Data Servers database db2',
+    packages=['iseries'],
+    classifiers=['Development Status :: 4 - Beta',
+                 'Intended Audience :: Developers',
+                 'License :: OSI Approved :: Apache Software License',
+                 'Operating System :: Microsoft :: Windows :: Windows NT/2000',
+                 'Operating System :: Unix',
+                 'Operating System :: POSIX :: Linux',
+                 'Operating System :: MacOS',
+                 'Topic :: Database :: Front-Ends'],
+    data_files=[('', ['./README.md']),
+                ('', ['./CHANGES']),
+                ('', ['./LICENSE'])],
+    zip_safe=False,
+    include_package_data=True,
+    entry_points={
+        'django.db.backends': ['iseries = iseries']
     },
     **extra
 )

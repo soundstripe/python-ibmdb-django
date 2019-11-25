@@ -44,23 +44,23 @@ except ImportError:
 
 from django.db.backends.signals import connection_created
 
-# Importing internal classes from ibm_db_django package.
-from ibm_db_django.client import DatabaseClient
-from ibm_db_django.creation import DatabaseCreation
-from ibm_db_django.introspection import DatabaseIntrospection
-from ibm_db_django.operations import DatabaseOperations
+# Importing internal classes from iseries package.
+from iseries.client import DatabaseClient
+from iseries.creation import DatabaseCreation
+from iseries.introspection import DatabaseIntrospection
+from iseries.operations import DatabaseOperations
 if not _IS_JYTHON:
-    import ibm_db_django.pybase as Base
+    import iseries.pybase as Base
     import ibm_db_dbi as Database
 else:
-    import ibm_db_django.jybase as Base
+    import iseries.jybase as Base
     from com.ziclix.python.sql import zxJDBC as Database
     
 # For checking django's version
 from django import VERSION as djangoVersion
 
 if ( djangoVersion[0:2] >= ( 1, 7 )):
-    from ibm_db_django.schemaEditor import DB2SchemaEditor
+    from iseries.schemaEditor import DB2SchemaEditor
 
 DatabaseError = Database.DatabaseError
 IntegrityError = Database.IntegrityError
