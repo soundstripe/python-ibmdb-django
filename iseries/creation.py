@@ -18,11 +18,10 @@
 
 import sys
 
-from django.db.backends.base.creation import BaseDatabaseCreation
-
+from django import VERSION as djangoVersion
 from django.conf import settings
 from django.core.management import call_command
-from django import VERSION as djangoVersion
+from django.db.backends.base.creation import BaseDatabaseCreation
 from django.db.backends.utils import truncate_name
 
 TEST_DBNAME_PREFIX = 'test_'
@@ -167,11 +166,11 @@ class DatabaseCreation(BaseDatabaseCreation):
                     if not autoclobber:
                         confirm = raw_input(
                             "Not able to create test database, %s. Type yes to use %s as test database, or no to exit" % (
-                            message.split(":")[1], old_database))
+                                message.split(":")[1], old_database))
                     else:
                         confirm = raw_input(
                             "Not able to create test database, %s. Type yes to use %s as test database, or no to exit" % (
-                            message.split(":")[1], old_database))
+                                message.split(":")[1], old_database))
                     if autoclobber or confirm == 'yes':
                         kwargs['database'] = old_database
                         self.__clean_up(self.connection.cursor())
