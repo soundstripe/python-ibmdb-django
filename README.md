@@ -1,17 +1,14 @@
 # Getting started with IBM DB Django adapter 
 
-IBM DB2 support for the Django application Framework
+IBM iSeries Db2 (pyodbc/iaccess driver) support for the Django application Framework
 
-ibm_db_django enables access to IBM DB2 from Django applications
-[http://www.djangoproject.com/]
+forked from python-ibmdb-django
 
-The adapter has been developed and is supported by IBM
+# Prerequisites for Django for iSeries
 
-# Prerequisites for Django on Python 
-
- * Python 2.5.
- * Django Framework 1.7.x or above.
- * IBM_DB driver and IBM_DB_DBI wrapper 1.0 or higher 
+ * Python 3.6+
+ * Django Framework 2.2.x or above.
+ * iAccess Client ODBC Driver
  
 # Installation 
 
