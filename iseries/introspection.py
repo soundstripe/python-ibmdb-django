@@ -83,13 +83,7 @@ class DatabaseIntrospection( BaseDatabaseIntrospection ):
         }
      
     def get_field_type(self, data_type, description):
-        if (djangoVersion[0:2] < ( 2, 0) ): 
-            if not _IS_JYTHON:
-                if data_type == Database.NUMBER:
-                    if description.precision == 5:
-                        return 'SmallIntegerField'
-        else:
-            return super(DatabaseIntrospection, self).get_field_type(data_type, description)
+        return super(DatabaseIntrospection, self).get_field_type(data_type, description)
     
     # Converting table name to lower case.
     def table_name_converter ( self, name ):        

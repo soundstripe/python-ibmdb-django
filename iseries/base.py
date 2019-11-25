@@ -21,7 +21,6 @@ DB2 database backend for Django.
 Requires: ibm_db_dbi (http://pypi.python.org/pypi/ibm_db) for python
 """
 import sys
-_IS_JYTHON = sys.platform.startswith( 'java' )
 
 from django.core.exceptions import ImproperlyConfigured
 
@@ -49,37 +48,28 @@ from iseries.client import DatabaseClient
 from iseries.creation import DatabaseCreation
 from iseries.introspection import DatabaseIntrospection
 from iseries.operations import DatabaseOperations
-if not _IS_JYTHON:
-    import iseries.pybase as Base
-    import ibm_db_dbi as Database
-else:
-    import iseries.jybase as Base
-    from com.ziclix.python.sql import zxJDBC as Database
-    
+import iseries.pybase as Base
+import ibm_db_dbi as Database
+
 # For checking django's version
 from django import VERSION as djangoVersion
 
-if ( djangoVersion[0:2] >= ( 1, 7 )):
-    from iseries.schemaEditor import DB2SchemaEditor
+from iseries.schemaEditor import DB2SchemaEditor
 
 DatabaseError = Database.DatabaseError
 IntegrityError = Database.IntegrityError
-if ( djangoVersion[0:2] >= ( 1, 6 )):
-    Error = Database.Error
-    InterfaceError = Database.InterfaceError
-    DataError = Database.DataError
-    OperationalError = Database.OperationalError
-    InternalError = Database.InternalError
-    ProgrammingError = Database.ProgrammingError
-    NotSupportedError = Database.NotSupportedError
+Error = Database.Error
+InterfaceError = Database.InterfaceError
+DataError = Database.DataError
+OperationalError = Database.OperationalError
+InternalError = Database.InternalError
+ProgrammingError = Database.ProgrammingError
+NotSupportedError = Database.NotSupportedError
     
 
-if _IS_JYTHON:
-    dbms_name = 'dbname'
-else:
-    dbms_name = 'dbms_name'
-    
-class DatabaseFeatures( BaseDatabaseFeatures ):    
+dbms_name = 'dbname'
+
+class DatabaseFeatures( BaseDatabaseFeatures ):
     can_use_chunked_reads = True
     
     #Save point is supported by DB2.
@@ -147,8 +137,7 @@ class DatabaseWrapper( BaseDatabaseWrapper ):
         "istartswith":  "LIKE UPPER(%s) ESCAPE '\\'",
         "iendswith":    "LIKE UPPER(%s) ESCAPE '\\'",
     }
-    if( djangoVersion[0:2] >= ( 1, 6 ) ):
-        Database = Database
+    Database = Database
 
     client_class = DatabaseClient
     creation_class = DatabaseCreation
@@ -193,29 +182,14 @@ class DatabaseWrapper( BaseDatabaseWrapper ):
         else:
             strvar = basestring
         kwargs = { }
-        if ( djangoVersion[0:2] <= ( 1, 0 ) ):
-            database_name = self.settings.DATABASE_NAME
-            database_user = self.settings.DATABASE_USER
-            database_pass = self.settings.DATABASE_PASSWORD
-            database_host = self.settings.DATABASE_HOST
-            database_port = self.settings.DATABASE_PORT
-            database_options = self.settings.DATABASE_OPTIONS
-        elif ( djangoVersion[0:2] <= ( 1, 1 ) ):
-            settings_dict = self.settings_dict
-            database_name = settings_dict['DATABASE_NAME']
-            database_user = settings_dict['DATABASE_USER']
-            database_pass = settings_dict['DATABASE_PASSWORD']
-            database_host = settings_dict['DATABASE_HOST']
-            database_port = settings_dict['DATABASE_PORT']
-            database_options = settings_dict['DATABASE_OPTIONS']
-        else:
-            settings_dict = self.settings_dict
-            database_name = settings_dict['NAME']
-            database_user = settings_dict['USER']
-            database_pass = settings_dict['PASSWORD']
-            database_host = settings_dict['HOST']
-            database_port = settings_dict['PORT']
-            database_options = settings_dict['OPTIONS']
+
+        settings_dict = self.settings_dict
+        database_name = settings_dict['NAME']
+        database_user = settings_dict['USER']
+        database_pass = settings_dict['PASSWORD']
+        database_host = settings_dict['HOST']
+        database_port = settings_dict['PORT']
+        database_options = settings_dict['OPTIONS']
  
         if database_name != '' and isinstance( database_name, strvar ):
             kwargs['database'] = database_name
@@ -289,34 +263,18 @@ class DatabaseWrapper( BaseDatabaseWrapper ):
         return connection
         
     # Over-riding _cursor method to return DB2 cursor.
-    if ( djangoVersion[0:2] < ( 1, 6 )):
-        def _cursor( self, settings = None ):
-            if not self.__is_connection():
-                if ( djangoVersion[0:2] <= ( 1, 0 ) ):
-                    self.settings = settings
-                    
-                self.connection = self.get_new_connection(self.get_connection_params())
-                cursor = self.databaseWrapper._cursor(self.connection)
-                
-                if( djangoVersion[0:3] <= ( 1, 2, 2 ) ):
-                    connection_created.send( sender = self.__class__ )
-                else:
-                    connection_created.send( sender = self.__class__, connection = self )
-            else:
-                cursor = self.databaseWrapper._cursor( self.connection )  
-            return cursor
-    else:
-        def create_cursor( self , name = None):
-            return self.databaseWrapper._cursor( self.connection )
-            
-        def init_connection_state( self ):
-            pass
-        
-        def is_usable(self):
-            if self.databaseWrapper.is_active( self.connection ):
-                return True
-            else:
-                return False
+
+    def create_cursor( self , name = None):
+        return self.databaseWrapper._cursor( self.connection )
+
+    def init_connection_state( self ):
+        pass
+
+    def is_usable(self):
+        if self.databaseWrapper.is_active( self.connection ):
+            return True
+        else:
+            return False
             
     def _set_autocommit(self, autocommit):
         self.connection.set_autocommit( autocommit )

@@ -63,12 +63,11 @@ class DB2SchemaEditor(BaseDatabaseSchemaEditor):
             if (field.default is not None) and field.has_default():
                 value = field.get_default()
                 value = self.prepare_default(value)
-                if( djangoVersion[0:2] >= ( 1, 8 ) ):
-                    if isinstance(field,models.BinaryField ):
-                        if (value=="''"):
-                            value  = 'EMPTY_BLOB()'
-                        else:                       
-                            value='blob( %s'  %value + ')'
+                if isinstance(field,models.BinaryField ):
+                    if (value=="''"):
+                        value  = 'EMPTY_BLOB()'
+                    else:
+                        value='blob( %s'  %value + ')'
                                             
                 sql += " DEFAULT %s" % value
             else:
@@ -121,16 +120,10 @@ class DB2SchemaEditor(BaseDatabaseSchemaEditor):
         old_db_field_type = old_db_field['type']
         new_db_field_type = new_db_field['type']
 
-        if( djangoVersion[0:2] < ( 1, 9 ) ):
-            if old_field.rel is not None and hasattr(old_field.rel,'through'):
-                rel_condition = (old_field.rel.through and new_field.rel.through and old_field.rel.through._meta.auto_created and new_field.rel.through._meta.auto_created)
-            else:
-                rel_condition = False
+        if old_field.remote_field is not None and hasattr(old_field.remote_field,'through'):
+            rel_condition = (old_field.remote_field.through and new_field.remote_field.through and old_field.remote_field.through._meta.auto_created and new_field.remote_field.through._meta.auto_created)
         else:
-            if old_field.remote_field is not None and hasattr(old_field.remote_field,'through'):
-                rel_condition = (old_field.remote_field.through and new_field.remote_field.through and old_field.remote_field.through._meta.auto_created and new_field.remote_field.through._meta.auto_created)
-            else:
-                rel_condition = False
+            rel_condition = False
             
         if ((old_db_field_type, new_db_field_type) == (None, None)) and rel_condition:
                 return self._alter_many_to_many(model, old_field, new_field, strict)
@@ -238,10 +231,7 @@ class DB2SchemaEditor(BaseDatabaseSchemaEditor):
             )
         
         #Drop all FK constraints, if require we will make it again
-        if( djangoVersion[0:2] < ( 1, 9 ) ):
-            flag= old_field.rel
-        else:
-            flag= old_field.remote_field
+        flag= old_field.remote_field
         if flag:
             fk_names = self._constraint_names(model, [old_field.column], foreign_key=True)
             for fk_name in fk_names:
@@ -523,16 +513,10 @@ class DB2SchemaEditor(BaseDatabaseSchemaEditor):
         field._unique = False
         
         super(DB2SchemaEditor, self).add_field(model, field)
-        if( djangoVersion[0:2] < ( 1, 9 ) ):
-            if field.rel is not None and hasattr(field.rel,'through'):
-                rel_condition = field.rel.through._meta.auto_created
-            else:
-                rel_condition = False
+        if field.remote_field is not None and hasattr(field.remote_field,'through'):
+            rel_condition = field.remote_field.through._meta.auto_created
         else:
-            if field.remote_field is not None and hasattr(field.remote_field,'through'):
-                rel_condition = field.remote_field.through._meta.auto_created
-            else:
-                rel_condition = False
+            rel_condition = False
                 
         if isinstance(field, ManyToManyField) and rel_condition:
             return
@@ -590,24 +574,14 @@ class DB2SchemaEditor(BaseDatabaseSchemaEditor):
                           'index': {},
                           'check': {}}
 
-        if( djangoVersion[0:2] < ( 1, 9 ) ):
-            if ((old_field.rel is not None and hasattr(old_field.rel,'through')) and 
-               (new_field.rel is not None and hasattr(new_field.rel,'through'))):
-                old_field_rel_through = old_field.rel.through
-                rel_old_field = old_field.rel.through._meta.get_field(old_field.m2m_reverse_field_name())[0]
-                rel_new_field = new_field.rel.through._meta.get_field(new_field.m2m_reverse_field_name())[0]
-            else:
-                rel_old_field = None
-                rel_new_field = None
+        if((old_field.remote_field is not None and hasattr(old_field.remote_field,'through')) and
+            (new_field.remote_field is not None and hasattr(new_field.remote_field,'through'))):
+            old_field_rel_through = old_field.remote_field.through
+            rel_old_field = old_field.remote_field.through._meta.get_field(old_field.m2m_reverse_field_name())
+            rel_new_field = new_field.remote_field.through._meta.get_field(new_field.m2m_reverse_field_name())
         else:
-            if((old_field.remote_field is not None and hasattr(old_field.remote_field,'through')) and 
-                (new_field.remote_field is not None and hasattr(new_field.remote_field,'through'))):
-                old_field_rel_through = old_field.remote_field.through
-                rel_old_field = old_field.remote_field.through._meta.get_field(old_field.m2m_reverse_field_name())
-                rel_new_field = new_field.remote_field.through._meta.get_field(new_field.m2m_reverse_field_name())
-            else:
-                rel_old_field = None
-                rel_new_field = None
+            rel_old_field = None
+            rel_new_field = None
 
         if((rel_old_field is not None) and (rel_new_field is not None)):
             with self.connection.cursor() as cur:

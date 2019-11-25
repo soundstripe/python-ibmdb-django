@@ -26,34 +26,26 @@ import datetime
 # For checking django's version
 from django import VERSION as djangoVersion
 
-if ( djangoVersion[0:2] > ( 1, 1 ) ):
-    from django.db import utils
-    import sys
-if ( djangoVersion[0:2] >= ( 1, 4) ):
-    from django.utils import timezone
-    from django.conf import settings
-    import warnings
-if ( djangoVersion[0:2] >= ( 1, 5 )):
-    from django.utils.encoding import force_bytes, force_text
-    from django.utils import six
-    import re
- 
-_IS_JYTHON = sys.platform.startswith( 'java' )
-if _IS_JYTHON:
-    dbms_name = 'dbname'
-else:
-    dbms_name = 'dbms_name'
+from django.db import utils
+import sys
+from django.utils import timezone
+from django.conf import settings
+import warnings
+from django.utils.encoding import force_bytes, force_text
+from django.utils import six
+import re
+
+dbms_name = 'dbms_name'
 
 DatabaseError = Database.DatabaseError
 IntegrityError = Database.IntegrityError
-if ( djangoVersion[0:2] >= ( 1, 6 )):
-    Error = Database.Error
-    InterfaceError = Database.InterfaceError
-    DataError = Database.DataError
-    OperationalError = Database.OperationalError
-    InternalError = Database.InternalError
-    ProgrammingError = Database.ProgrammingError
-    NotSupportedError = Database.NotSupportedError
+Error = Database.Error
+InterfaceError = Database.InterfaceError
+DataError = Database.DataError
+OperationalError = Database.OperationalError
+InternalError = Database.InternalError
+ProgrammingError = Database.ProgrammingError
+NotSupportedError = Database.NotSupportedError
     
 class DatabaseWrapper( object ):
     # Get new database connection for non persistance connection 
@@ -195,41 +187,24 @@ class DB2CursorWrapper( Database.Cursor ):
                 parameters = ()
             if operation.count( "%s" ) > 0:
                 operation = operation % ( tuple( "?" * operation.count( "%s" ) ) )
-            if ( djangoVersion[0:2] >= ( 1, 4 ) ):
-                parameters = self._format_parameters( parameters )
+            parameters = self._format_parameters( parameters )
                 
-            if ( djangoVersion[0:2] <= ( 1, 1 ) ):
+            try:
                 if ( doReorg == 1 ):
                     super( DB2CursorWrapper, self ).execute( operation, parameters )
                     return self._reorg_tables()
-                else:    
+                else:
                     return super( DB2CursorWrapper, self ).execute( operation, parameters )
-            else:
-                try:
-                    if ( doReorg == 1 ):
-                        super( DB2CursorWrapper, self ).execute( operation, parameters )
-                        return self._reorg_tables()
-                    else:    
-                        return super( DB2CursorWrapper, self ).execute( operation, parameters )
-                except IntegrityError as e:
-                    if (djangoVersion[0:2] >= (1, 5)):
-                        six.reraise(utils.IntegrityError, utils.IntegrityError( *tuple( six.PY3 and e.args or ( e._message, ) ) ), sys.exc_info()[2])
-                        raise
-                    else:
-                        raise utils.IntegrityError, utils.IntegrityError( *tuple( e ) ), sys.exc_info()[2]
-                        
-                except ProgrammingError as e:
-                    if (djangoVersion[0:2] >= (1, 5)):
-                        six.reraise(utils.ProgrammingError, utils.ProgrammingError( *tuple( six.PY3 and e.args or ( e._message, ) ) ), sys.exc_info()[2])
-                        raise
-                    else:
-                        raise utils.ProgrammingError, utils.ProgrammingError( *tuple( e ) ), sys.exc_info()[2]
-                except DatabaseError as e:
-                    if (djangoVersion[0:2] >= (1, 5)):
-                        six.reraise(utils.DatabaseError, utils.DatabaseError( *tuple( six.PY3 and e.args or ( e._message, ) ) ), sys.exc_info()[2])
-                        raise
-                    else:
-                        raise utils.DatabaseError, utils.DatabaseError( *tuple( e ) ), sys.exc_info()[2]
+            except IntegrityError as e:
+                six.reraise(utils.IntegrityError, utils.IntegrityError( *tuple( six.PY3 and e.args or ( e._message, ) ) ), sys.exc_info()[2])
+                raise
+
+            except ProgrammingError as e:
+                six.reraise(utils.ProgrammingError, utils.ProgrammingError( *tuple( six.PY3 and e.args or ( e._message, ) ) ), sys.exc_info()[2])
+                raise
+            except DatabaseError as e:
+                six.reraise(utils.DatabaseError, utils.DatabaseError( *tuple( six.PY3 and e.args or ( e._message, ) ) ), sys.exc_info()[2])
+                raise
         except ( TypeError ):
             return None
         
@@ -240,26 +215,16 @@ class DB2CursorWrapper( Database.Cursor ):
                  raise ValueError("Regex not supported in this operation")
             if operation.count( "%s" ) > 0:
                 operation = operation % ( tuple( "?" * operation.count( "%s" ) ) )
-            if ( djangoVersion[0:2] >= ( 1, 4 ) ):
-                seq_parameters = [ self._format_parameters( parameters ) for parameters in seq_parameters ]
+            seq_parameters = [ self._format_parameters( parameters ) for parameters in seq_parameters ]
                 
-            if ( djangoVersion[0:2] <= ( 1, 1 ) ):
+            try:
                 return super( DB2CursorWrapper, self ).executemany( operation, seq_parameters )
-            else:
-                try:
-                    return super( DB2CursorWrapper, self ).executemany( operation, seq_parameters )
-                except IntegrityError as e:
-                    if (djangoVersion[0:2] >= (1, 5)):
-                        six.reraise(utils.IntegrityError, utils.IntegrityError( *tuple( six.PY3 and e.args or ( e._message, ) ) ), sys.exc_info()[2])
-                        raise
-                    else:
-                        raise utils.IntegrityError, utils.IntegrityError( *tuple( e ) ), sys.exc_info()[2]
-                except DatabaseError as e:
-                    if (djangoVersion[0:2] >= (1, 5)):
-                        six.reraise(utils.DatabaseError, utils.DatabaseError( *tuple( six.PY3 and e.args or ( e._message, ) ) ), sys.exc_info()[2])
-                        raise
-                    else:
-                        raise utils.DatabaseError, utils.DatabaseError( *tuple( e ) ), sys.exc_info()[2]
+            except IntegrityError as e:
+                six.reraise(utils.IntegrityError, utils.IntegrityError( *tuple( six.PY3 and e.args or ( e._message, ) ) ), sys.exc_info()[2])
+                raise
+            except DatabaseError as e:
+                six.reraise(utils.DatabaseError, utils.DatabaseError( *tuple( six.PY3 and e.args or ( e._message, ) ) ), sys.exc_info()[2])
+                raise
         except ( IndexError, TypeError ):
             return None
     
@@ -306,14 +271,13 @@ class DB2CursorWrapper( Database.Cursor ):
     def _fix_return_data( self, row ):
         row = list( row )
         index = -1
-        if ( djangoVersion[0:2] >= ( 1, 4 ) ):
-            for value, desc in zip( row, self.description ):
-                index = index + 1
-                if ( desc[1] == Database.DATETIME ):
-                    if settings.USE_TZ and value is not None and timezone.is_naive( value ):
-                        value = value.replace( tzinfo=timezone.utc )
-                        row[index] = value
-                elif ( djangoVersion[0:2] >= (1, 5 ) ):
-                    if isinstance(value, six.string_types):
-                        row[index] = re.sub(r'[\x00]', '', value)
+        for value, desc in zip( row, self.description ):
+            index = index + 1
+            if ( desc[1] == Database.DATETIME ):
+                if settings.USE_TZ and value is not None and timezone.is_naive( value ):
+                    value = value.replace( tzinfo=timezone.utc )
+                    row[index] = value
+            else:
+                if isinstance(value, six.string_types):
+                    row[index] = re.sub(r'[\x00]', '', value)
         return tuple( row )
