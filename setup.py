@@ -41,7 +41,7 @@ setup(
     author_email='steven@waitforitjames.com',
     maintainer='Steven James',
     maintainer_email='steven@waitforitjames.com',
-    url='https://github.com/soundstripe/python-pyodbc-iseries',
+    url='https://github.com/soundstripe/django-pyodbc-iseries',
     keywords='django iseries backends adapter IBM Data Servers database db2',
     packages=['iseries'],
     classifiers=['Development Status :: 4 - Beta',
