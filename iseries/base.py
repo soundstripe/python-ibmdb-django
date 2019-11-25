@@ -157,10 +157,6 @@ class DatabaseWrapper(BaseDatabaseWrapper):
 
     # To get dict of connection parameters 
     def get_connection_params(self):
-        if sys.version_info.major >= 3:
-            strvar = str
-        else:
-            strvar = basestring
         kwargs = {}
 
         settings_dict = self.settings_dict
@@ -171,24 +167,24 @@ class DatabaseWrapper(BaseDatabaseWrapper):
         database_port = settings_dict['PORT']
         database_options = settings_dict['OPTIONS']
 
-        if database_name != '' and isinstance(database_name, strvar):
+        if database_name != '' and isinstance(database_name, str):
             kwargs['database'] = database_name
         else:
             raise ImproperlyConfigured("Please specify the valid database Name to connect to")
 
-        if isinstance(database_user, strvar):
+        if isinstance(database_user, str):
             kwargs['user'] = database_user
 
-        if isinstance(database_pass, strvar):
+        if isinstance(database_pass, str):
             kwargs['password'] = database_pass
 
-        if isinstance(database_host, strvar):
+        if isinstance(database_host, str):
             kwargs['host'] = database_host
 
-        if isinstance(database_port, strvar):
+        if isinstance(database_port, str):
             kwargs['port'] = database_port
 
-        if isinstance(database_host, strvar):
+        if isinstance(database_host, str):
             kwargs['host'] = database_host
 
         if isinstance(database_options, dict):
