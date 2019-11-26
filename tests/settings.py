@@ -1,3 +1,4 @@
+import os
 import random
 import string
 
@@ -9,5 +10,7 @@ DATABASES = {
             'ENGINE': 'iseries',
             'NAME': 'test_iseries',
             'HOST': 'pub400.com',
+            'USER': os.environ['TEST_SYSTEM_USERNAME'],
+            'PASSWORD': os.environ['TEST_SYSTEM_PASSWORD'],
         }
 }

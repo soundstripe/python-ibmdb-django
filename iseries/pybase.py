@@ -52,10 +52,13 @@ class DatabaseWrapper(object):
         kwargsKeys = kwargs.keys()
         if (kwargsKeys.__contains__('port') and
                 kwargsKeys.__contains__('host')):
-            kwargs['dsn'] = "DRIVER={iSeries Access ODBC Driver};DATABASE=%s;SYSTEM=%s;PORT=%s;PROTOCOL=TCPIP;" % (
+            kwargs['dsn'] = "DRIVER={iSeries Access ODBC Driver};DATABASE=%s;" \
+                            "SYSTEM=%s;PORT=%s;PROTOCOL=TCPIP;UID=%s;PWD=%s" % (
                 kwargs.get('database'),
                 kwargs.get('host'),
-                kwargs.get('port')
+                kwargs.get('port'),
+                kwargs.get('user'),
+                kwargs.get('password')
             )
         else:
             kwargs['dsn'] = kwargs.get('database')
