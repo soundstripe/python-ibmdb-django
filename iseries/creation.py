@@ -82,43 +82,41 @@ class DatabaseCreation(BaseDatabaseCreation):
         # ignore tablespace information
         tablespace_sql = ''
         i = 0
-        if (djangoVersion[0:2] >= (1, 8) and 'DB2' not in getattr(self.connection.connection, dbms_name)) or getattr(
-                self.connection.connection, dbms_name) != 'DB2':
-            if len(model._meta.unique_together_index) != 0:
-                for unique_together_index in model._meta.unique_together_index:
-                    i = i + 1
-                    column_list = []
-                    for column in unique_together_index:
-                        for local_field in model._meta.local_fields:
-                            if column == local_field.name:
-                                column_list.extend([local_field.column])
-
-                    self.__add_psudokey_column(style, self.connection.cursor(), model._meta.db_table,
-                                               model._meta.pk.attname, column_list)
-                    column_list.extend(
-                        [truncate_name("%s%s" % (self.psudo_column_prefix, "_".join(column_list)), max_name_length)])
-                    output.extend([style.SQL_KEYWORD('CREATE UNIQUE INDEX') + ' ' + \
-                                   style.SQL_TABLE(qn('db2_%s_%s' % (model._meta.db_table, i))) + ' ' + \
-                                   style.SQL_KEYWORD('ON') + ' ' + \
-                                   style.SQL_TABLE(qn(model._meta.db_table)) + ' ' + \
-                                   '( %s )' % ", ".join(column_list) + ' ' + \
-                                   '%s;' % tablespace_sql])
-                model._meta.unique_together_index = []
-
-            if f.unique_index:
+        if len(model._meta.unique_together_index) != 0:
+            for unique_together_index in model._meta.unique_together_index:
+                i = i + 1
                 column_list = []
-                column_list.extend([f.column])
+                for column in unique_together_index:
+                    for local_field in model._meta.local_fields:
+                        if column == local_field.name:
+                            column_list.extend([local_field.column])
+
                 self.__add_psudokey_column(style, self.connection.cursor(), model._meta.db_table,
                                            model._meta.pk.attname, column_list)
-                cisql = 'CREATE UNIQUE INDEX'
-                output.extend([style.SQL_KEYWORD(cisql) + ' ' +
-                               style.SQL_TABLE(qn('%s_%s' % (model._meta.db_table, f.column))) + ' ' +
-                               style.SQL_KEYWORD('ON') + ' ' +
-                               style.SQL_TABLE(qn(model._meta.db_table)) + ' ' +
-                               "(%s, %s )" % (style.SQL_FIELD(qn(f.column)), style.SQL_FIELD(
-                    qn(truncate_name((self.psudo_column_prefix + f.column), max_name_length)))) +
-                               "%s;" % tablespace_sql])
-                return output
+                column_list.extend(
+                    [truncate_name("%s%s" % (self.psudo_column_prefix, "_".join(column_list)), max_name_length)])
+                output.extend([style.SQL_KEYWORD('CREATE UNIQUE INDEX') + ' ' + \
+                               style.SQL_TABLE(qn('db2_%s_%s' % (model._meta.db_table, i))) + ' ' + \
+                               style.SQL_KEYWORD('ON') + ' ' + \
+                               style.SQL_TABLE(qn(model._meta.db_table)) + ' ' + \
+                               '( %s )' % ", ".join(column_list) + ' ' + \
+                               '%s;' % tablespace_sql])
+            model._meta.unique_together_index = []
+
+        if f.unique_index:
+            column_list = []
+            column_list.extend([f.column])
+            self.__add_psudokey_column(style, self.connection.cursor(), model._meta.db_table,
+                                       model._meta.pk.attname, column_list)
+            cisql = 'CREATE UNIQUE INDEX'
+            output.extend([style.SQL_KEYWORD(cisql) + ' ' +
+                           style.SQL_TABLE(qn('%s_%s' % (model._meta.db_table, f.column))) + ' ' +
+                           style.SQL_KEYWORD('ON') + ' ' +
+                           style.SQL_TABLE(qn(model._meta.db_table)) + ' ' +
+                           "(%s, %s )" % (style.SQL_FIELD(qn(f.column)), style.SQL_FIELD(
+                qn(truncate_name((self.psudo_column_prefix + f.column), max_name_length)))) +
+                           "%s;" % tablespace_sql])
+            return output
 
         if f.db_index and not f.unique:
             cisql = 'CREATE INDEX'

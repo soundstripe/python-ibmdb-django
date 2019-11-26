@@ -36,7 +36,7 @@ from iseries.creation import DatabaseCreation
 from iseries.introspection import DatabaseIntrospection
 from iseries.operations import DatabaseOperations
 import iseries.pybase as Base
-import pyodbc as Database
+from . import Database
 
 # For checking django's version
 from django import VERSION as djangoVersion

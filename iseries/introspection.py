@@ -18,18 +18,8 @@
 import sys
 from collections import namedtuple
 
-_IS_JYTHON = sys.platform.startswith('java')
 
-if not _IS_JYTHON:
-    try:
-        # Import IBM_DB wrapper ibm_db_dbi
-        import ibm_db_dbi as Database
-        # from Database import DatabaseError
-    except ImportError as e:
-        raise ImportError(
-            "ibm_db module not found. Install ibm_db module from http://code.google.com/p/ibm-db/. Error: %s" % e)
-else:
-    from com.ziclix.python.sql import zxJDBC
+from . import Database
 
 try:
     from django.db.backends import BaseDatabaseIntrospection, FieldInfo
@@ -44,45 +34,27 @@ class DatabaseIntrospection(BaseDatabaseIntrospection):
     This is the class where database metadata information can be generated.
     """
 
-    if not _IS_JYTHON:
-        data_types_reverse = {
-            Database.STRING: "CharField",
-            Database.TEXT: "TextField",
-            Database.XML: "XMLField",
-            Database.NUMBER: "IntegerField",
-            Database.FLOAT: "FloatField",
-            Database.DECIMAL: "DecimalField",
-            Database.DATE: "DateField",
-            Database.TIME: "TimeField",
-            Database.DATETIME: "DateTimeField",
-        }
-        if (djangoVersion[0:2] > (1, 1)):
-            data_types_reverse[Database.BINARY] = "BinaryField"
-            data_types_reverse[Database.BIGINT] = "BigIntegerField"
-        else:
-            data_types_reverse[Database.BIGINT] = "IntegerField"
-    else:
-        data_types_reverse = {
-            zxJDBC.CHAR: "CharField",
-            zxJDBC.BIGINT: "BigIntegerField",
-            zxJDBC.BINARY: "BinaryField",
-            zxJDBC.BIT: "SmallIntegerField",
-            zxJDBC.BLOB: "BinaryField",
-            zxJDBC.CLOB: "TextField",
-            zxJDBC.DATE: "DateField",
-            zxJDBC.DECIMAL: "DecimalField",
-            zxJDBC.DOUBLE: "FloatField",
-            zxJDBC.FLOAT: "FloatField",
-            zxJDBC.INTEGER: "IntegerField",
-            zxJDBC.LONGVARCHAR: "TextField",
-            zxJDBC.LONGVARBINARY: "ImageField",
-            zxJDBC.NUMERIC: "DecimalField",
-            zxJDBC.REAL: "FloatField",
-            zxJDBC.SMALLINT: "SmallIntegerField",
-            zxJDBC.VARCHAR: "CharField",
-            zxJDBC.TIMESTAMP: "DateTimeField",
-            zxJDBC.TIME: "TimeField",
-        }
+    data_types_reverse = {
+        Database.SQL_BIGINT: "BigIntegerField",
+        Database.SQL_BINARY: "BinaryField",
+        Database.SQL_CHAR: "CharField",
+        Database.SQL_DECIMAL: "DecimalField",
+        Database.SQL_DOUBLE: "FloatField",
+        Database.SQL_FLOAT: "FloatField",
+        Database.SQL_INTEGER: "IntegerField",
+        Database.SQL_LONGVARBINARY: 'BinaryField',
+        Database.SQL_LONGVARCHAR: 'TextField',
+        Database.SQL_NUMERIC: "DecimalField",
+        Database.SQL_SS_XML: "XMLField",
+        Database.SQL_TYPE_DATE: "DateField",
+        Database.SQL_TYPE_TIME: "TimeField",
+        Database.SQL_TYPE_TIMESTAMP: "DateTimeField",
+        Database.SQL_VARBINARY: 'BinaryField',
+        Database.SQL_VARCHAR: "TextField",
+        Database.SQL_WCHAR: 'CharField',
+        Database.SQL_WLONGVARCHAR: 'TextField',
+        Database.SQL_WVARCHAR: 'TextField',
+    }
 
     def get_field_type(self, data_type, description):
         return super(DatabaseIntrospection, self).get_field_type(data_type, description)
@@ -121,8 +93,8 @@ class DatabaseIntrospection(BaseDatabaseIntrospection):
             schema = cursor.connection.get_current_schema()
             for fk in cursor.connection.foreign_keys(True, schema, table_name):
                 relations[self.__get_col_index(cursor, schema, table_name, fk['FKCOLUMN_NAME'])] = (
-                self.__get_col_index(cursor, schema, fk['PKTABLE_NAME'], fk['PKCOLUMN_NAME']),
-                fk['PKTABLE_NAME'].lower())
+                    self.__get_col_index(cursor, schema, fk['PKTABLE_NAME'], fk['PKCOLUMN_NAME']),
+                    fk['PKTABLE_NAME'].lower())
         else:
             cursor.execute("select current_schema from sysibm.sysdummy1")
             schema = cursor.fetchone()[0]
@@ -134,7 +106,7 @@ class DatabaseIntrospection(BaseDatabaseIntrospection):
             for fk in cursor.fetchall():
                 # fk[2] is primary key table name, fk[3] is primary key column name, fk[7] is foreign key column name being exported
                 relations[self.__get_col_index(cursor, schema, table_name, fk[7])] = (
-                self.__get_col_index(cursor, schema, fk[2], fk[3]), fk[3], fk[2])
+                    self.__get_col_index(cursor, schema, fk[2], fk[3]), fk[3], fk[2])
         return relations
 
     # Private method. Getting Index position of column by its name

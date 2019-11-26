@@ -16,12 +16,7 @@
 # | Authors: Ambrish Bhargava, Tarun Pasrija, Rahul Priyadarshi              |
 # +--------------------------------------------------------------------------+
 
-# Importing IBM_DB wrapper ibm_db_dbi
-try:
-    import ibm_db_dbi as Database
-except ImportError as e:
-    raise ImportError(
-        "ibm_db module not found. Install ibm_db module from http://code.google.com/p/ibm-db/. Error: %s" % e)
+
 
 import datetime
 import re
@@ -34,6 +29,8 @@ from django.conf import settings
 from django.db import utils
 from django.utils import six
 from django.utils import timezone
+
+from . import Database
 
 dbms_name = 'dbms_name'
 
