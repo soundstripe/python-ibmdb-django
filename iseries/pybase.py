@@ -45,13 +45,12 @@ ProgrammingError = Database.ProgrammingError
 NotSupportedError = Database.NotSupportedError
 
 
-class DatabaseWrapper(object):
+class DatabaseWrapper:
     # Get new database connection for non persistance connection 
     def get_new_connection(self, kwargs):
         SchemaFlag = False
         kwargsKeys = kwargs.keys()
-        if (kwargsKeys.__contains__('port') and
-                kwargsKeys.__contains__('host')):
+        if 'port' in kwargsKeys and 'host' in kwargsKeys:
             kwargs['dsn'] = "DRIVER={iSeries Access ODBC Driver};DATABASE=%s;" \
                             "SYSTEM=%s;PORT=%s;PROTOCOL=TCPIP;UID=%s;PWD=%s" % (
                 kwargs.get('database'),
@@ -63,55 +62,41 @@ class DatabaseWrapper(object):
         else:
             kwargs['dsn'] = kwargs.get('database')
 
-        if (kwargsKeys.__contains__('currentschema')):
-            kwargs['dsn'] += "CurrentSchema=%s;" % (kwargs.get('currentschema'))
-            currentschema = kwargs.get('currentschema')
-            SchemaFlag = True
-            del kwargs['currentschema']
-
-        if (kwargsKeys.__contains__('security')):
+        if 'security' in kwargsKeys:
             kwargs['dsn'] += "security=%s;" % (kwargs.get('security'))
             del kwargs['security']
 
-        if (kwargsKeys.__contains__('sslclientkeystoredb')):
+        if 'sslclientkeystoredb' in kwargsKeys:
             kwargs['dsn'] += "SSLCLIENTKEYSTOREDB=%s;" % (kwargs.get('sslclientkeystoredb'))
             del kwargs['sslclientkeystoredb']
 
-        if (kwargsKeys.__contains__('sslclientkeystoredbpassword')):
+        if 'sslclientkeystoredbpassword' in kwargsKeys:
             kwargs['dsn'] += "SSLCLIENTKEYSTOREDBPASSWORD=%s;" % (kwargs.get('sslclientkeystoredbpassword'))
             del kwargs['sslclientkeystoredbpassword']
 
-        if (kwargsKeys.__contains__('sslclientkeystash')):
+        if 'sslclientkeystash' in kwargsKeys:
             kwargs['dsn'] += "SSLCLIENTKEYSTASH=%s;" % (kwargs.get('sslclientkeystash'))
             del kwargs['sslclientkeystash']
 
-        if (kwargsKeys.__contains__('sslservercertificate')):
+        if 'sslservercertificate' in kwargsKeys:
             kwargs['dsn'] += "SSLSERVERCERTIFICATE=%s;" % (kwargs.get('sslservercertificate'))
             del kwargs['sslservercertificate']
 
         conn_options = {'autocommit': False}
         kwargs['conn_options'] = conn_options
-        if kwargsKeys.__contains__('options'):
+        if 'options' in kwargsKeys:
             kwargs.update(kwargs.get('options'))
             del kwargs['options']
-        if kwargsKeys.__contains__('port'):
+        if 'port' in kwargsKeys:
             del kwargs['port']
 
-        pconnect_flag = False
-        if kwargsKeys.__contains__('PCONNECT'):
-            pconnect_flag = kwargs['PCONNECT']
-            del kwargs['PCONNECT']
+        currentschema = kwargs.pop('currentschema', None)
 
         dsn = kwargs.pop('dsn', '')
 
-        if pconnect_flag:
-            connection = Database.pconnect(dsn, **kwargs)
-        else:
-            connection = Database.connect(dsn, **kwargs)
-        connection.autocommit = connection.set_autocommit
-
-        if SchemaFlag:
-            schema = connection.set_current_schema(currentschema)
+        connection = Database.connect(dsn, **kwargs)
+        if currentschema:
+            connection.set_current_schema(currentschema)
 
         return connection
 

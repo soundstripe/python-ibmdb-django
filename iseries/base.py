@@ -69,7 +69,7 @@ class DatabaseFeatures(BaseDatabaseFeatures):
     requires_rollback_on_dirty_transaction = True
     supports_regex_backreferencing = True
     supports_timezones = False
-    has_bulk_insert = False
+    has_bulk_insert = True
     has_select_for_update = True
     supports_long_model_names = False
     can_distinct_on_fields = False
@@ -214,10 +214,6 @@ class DatabaseWrapper(BaseDatabaseWrapper):
     # To get new connection from Database
     def get_new_connection(self, conn_params):
         connection = self.databaseWrapper.get_new_connection(conn_params)
-        if getattr(connection, dbms_name) == 'DB2':
-            self.features.has_bulk_insert = False
-        else:
-            self.features.has_bulk_insert = True
         return connection
 
     # Over-riding _cursor method to return DB2 cursor.
@@ -235,7 +231,7 @@ class DatabaseWrapper(BaseDatabaseWrapper):
             return False
 
     def _set_autocommit(self, autocommit):
-        self.connection.set_autocommit(autocommit)
+        self.connection.autocommit = autocommit
 
     def close(self):
         self.validate_thread_sharing()
