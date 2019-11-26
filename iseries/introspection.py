@@ -67,14 +67,14 @@ class DatabaseIntrospection(BaseDatabaseIntrospection):
     def get_table_list(self, cursor):
         TableInfo = namedtuple('TableInfo', ['name', 'type'])
         table_list = []
-        for table in cursor.connection.tables(cursor.connection.get_current_schema()):
+        for table in cursor.tables(cursor.get_current_schema()):
             table_list.append(TableInfo(table['TABLE_NAME'].lower(), 't'))
         return table_list
 
     # Generating a dictionary for foreign key details, which are present under current schema.
     def get_relations(self, cursor, table_name):
         relations = {}
-        schema = cursor.connection.get_current_schema()
+        schema = cursor.get_current_schema()
         for fk in cursor.connection.foreign_keys(True, schema, table_name):
             relations[self.__get_col_index(cursor, schema, table_name, fk['FKCOLUMN_NAME'])] = (
                 self.__get_col_index(cursor, schema, fk['PKTABLE_NAME'], fk['PKCOLUMN_NAME']),
@@ -88,7 +88,7 @@ class DatabaseIntrospection(BaseDatabaseIntrospection):
 
     def get_key_columns(self, cursor, table_name):
         relations = []
-        schema = cursor.connection.get_current_schema()
+        schema = cursor.get_current_schema()
         for fk in cursor.connection.foreign_keys(True, schema, table_name):
             relations.append((fk['FKCOLUMN_NAME'].lower(), fk['PKTABLE_NAME'].lower(), fk['PKCOLUMN_NAME'].lower()))
         return relations
@@ -98,7 +98,7 @@ class DatabaseIntrospection(BaseDatabaseIntrospection):
         indexes = {}
         # To skip indexes across multiple fields
         multifield_indexSet = set()
-        schema = cursor.connection.get_current_schema()
+        schema = cursor.get_current_schema()
         all_indexes = cursor.connection.indexes(True, schema, table_name)
         for index in all_indexes:
             if (index['ORDINAL_POSITION'] is not None) and (index['ORDINAL_POSITION'] == 2):
@@ -126,7 +126,7 @@ class DatabaseIntrospection(BaseDatabaseIntrospection):
         description = []
         table_type = 'T'
         dbms_name = 'dbms_name'
-        schema = cursor.connection.get_current_schema()
+        schema = cursor.get_current_schema()
 
         if (getattr(cursor.connection, dbms_name) == 'AS'):
             sql = "SELECT TYPE FROM QSYS2.SYSTABLES WHERE TABLE_SCHEMA='%(schema)s' AND TABLE_NAME='%(table)s'" % {
@@ -151,7 +151,7 @@ class DatabaseIntrospection(BaseDatabaseIntrospection):
 
     def get_constraints(self, cursor, table_name):
         constraints = {}
-        schema = cursor.connection.get_current_schema()
+        schema = cursor.get_current_schema()
         dbms_name = 'dbms_name'
 
         if (getattr(cursor.connection, dbms_name) == 'AS'):

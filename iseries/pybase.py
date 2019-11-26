@@ -48,7 +48,6 @@ NotSupportedError = Database.NotSupportedError
 class DatabaseWrapper:
     # Get new database connection for non persistance connection 
     def get_new_connection(self, kwargs):
-        SchemaFlag = False
         kwargsKeys = kwargs.keys()
         if 'port' in kwargsKeys and 'host' in kwargsKeys:
             kwargs['dsn'] = "DRIVER={iSeries Access ODBC Driver};DATABASE=%s;" \
@@ -128,147 +127,155 @@ class DB2CursorWrapper:
         self.cursor = connection.cursor()
 
     def __iter__(self):
-        return self
+        return self.cursor
 
-    def next(self):
-        row = self.fetchone()
-        if row == None:
-            raise StopIteration
-        return row
+    def __getattr__(self, attr):
+        return getattr(self.cursor, attr)
 
-    def _create_instance(self, connection):
-        return DB2CursorWrapper(connection)
+    def get_current_schema(self):
+        self.execute('select CURRENT_SCHEMA from sysibm.sysdummy1')
+        return self.fetchone()[0]
 
-    def _format_parameters(self, parameters):
-        parameters = list(parameters)
-        for index in range(len(parameters)):
-            # With raw SQL queries, datetimes can reach this function
-            # without being converted by DateTimeField.get_db_prep_value.
-            if settings.USE_TZ and isinstance(parameters[index], datetime.datetime):
-                param = parameters[index]
-                if timezone.is_naive(param):
-                    warnings.warn(u"Received a naive datetime (%s)"
-                                  u" while time zone support is active." % param,
-                                  RuntimeWarning)
-                    default_timezone = timezone.get_default_timezone()
-                    param = timezone.make_aware(param, default_timezone)
-                param = param.astimezone(timezone.utc).replace(tzinfo=None)
-                parameters[index] = param
-        return tuple(parameters)
-
-    # Over-riding this method to modify SQLs which contains format parameter to qmark. 
-    def execute(self, operation, parameters=()):
-        if (djangoVersion[0:2] >= (2, 0)):
-            operation = str(operation)
-        try:
-            if operation.find('ALTER TABLE') == 0 and getattr(self.connection, dbms_name) != 'DB2':
-                doReorg = 1
-            else:
-                doReorg = 0
-            if operation.count("db2regexExtraField(%s)") > 0:
-                operation = operation.replace("db2regexExtraField(%s)", "")
-                operation = operation % parameters
-                parameters = ()
-            if operation.count("%s") > 0:
-                operation = operation % (tuple("?" * operation.count("%s")))
-            parameters = self._format_parameters(parameters)
-
-            try:
-                if (doReorg == 1):
-                    super(DB2CursorWrapper, self).execute(operation, parameters)
-                    return self._reorg_tables()
-                else:
-                    return super(DB2CursorWrapper, self).execute(operation, parameters)
-            except IntegrityError as e:
-                six.reraise(utils.IntegrityError, utils.IntegrityError(*tuple(six.PY3 and e.args or (e._message,))),
-                            sys.exc_info()[2])
-                raise
-
-            except ProgrammingError as e:
-                six.reraise(utils.ProgrammingError, utils.ProgrammingError(*tuple(six.PY3 and e.args or (e._message,))),
-                            sys.exc_info()[2])
-                raise
-            except DatabaseError as e:
-                six.reraise(utils.DatabaseError, utils.DatabaseError(*tuple(six.PY3 and e.args or (e._message,))),
-                            sys.exc_info()[2])
-                raise
-        except (TypeError):
-            return None
-
-    # Over-riding this method to modify SQLs which contains format parameter to qmark.
-    def executemany(self, operation, seq_parameters):
-        try:
-            if operation.count("db2regexExtraField(%s)") > 0:
-                raise ValueError("Regex not supported in this operation")
-            if operation.count("%s") > 0:
-                operation = operation % (tuple("?" * operation.count("%s")))
-            seq_parameters = [self._format_parameters(parameters) for parameters in seq_parameters]
-
-            try:
-                return super(DB2CursorWrapper, self).executemany(operation, seq_parameters)
-            except IntegrityError as e:
-                six.reraise(utils.IntegrityError, utils.IntegrityError(*tuple(six.PY3 and e.args or (e._message,))),
-                            sys.exc_info()[2])
-                raise
-            except DatabaseError as e:
-                six.reraise(utils.DatabaseError, utils.DatabaseError(*tuple(six.PY3 and e.args or (e._message,))),
-                            sys.exc_info()[2])
-                raise
-        except (IndexError, TypeError):
-            return None
-
-    # table reorganization method
-    def _reorg_tables(self):
-        checkReorgSQL = "select tabschema, tabname from sysibmadm.admintabinfo where reorg_pending = 'Y'"
-        res = []
-        reorgSQLs = []
-        parameters = ()
-        super(DB2CursorWrapper, self).execute(checkReorgSQL, parameters)
-        res = super(DB2CursorWrapper, self).fetchall()
-        if res:
-            for sName, tName in res:
-                reorgSQL = '''CALL SYSPROC.ADMIN_CMD('REORG TABLE "%(sName)s"."%(tName)s"')''' % {
-                    'sName': sName, 'tName': tName
-                }
-                reorgSQLs.append(reorgSQL)
-            for sql in reorgSQLs:
-                super(DB2CursorWrapper, self).execute(sql)
-
-    # Over-riding this method to modify result set containing datetime and time zone support is active
-    def fetchone(self):
-        row = super(DB2CursorWrapper, self).fetchone()
-        if row is None:
-            return row
-        else:
-            return self._fix_return_data(row)
-
-    # Over-riding this method to modify result set containing datetime and time zone support is active
-    def fetchmany(self, size=0):
-        rows = super(DB2CursorWrapper, self).fetchmany(size)
-        if rows is None:
-            return rows
-        else:
-            return [self._fix_return_data(row) for row in rows]
-
-    # Over-riding this method to modify result set containing datetime and time zone support is active
-    def fetchall(self):
-        rows = super(DB2CursorWrapper, self).fetchall()
-        if rows is None:
-            return rows
-        else:
-            return [self._fix_return_data(row) for row in rows]
-
-    # This method to modify result set containing datetime and time zone support is active   
-    def _fix_return_data(self, row):
-        row = list(row)
-        index = -1
-        for value, desc in zip(row, self.description):
-            index = index + 1
-            if (desc[1] == Database.DATETIME):
-                if settings.USE_TZ and value is not None and timezone.is_naive(value):
-                    value = value.replace(tzinfo=timezone.utc)
-                    row[index] = value
-            else:
-                if isinstance(value, six.string_types):
-                    row[index] = re.sub(r'[\x00]', '', value)
-        return tuple(row)
+    #
+    # def next(self):
+    #     row = self.fetchone()
+    #     if row == None:
+    #         raise StopIteration
+    #     return row
+    #
+    # def _create_instance(self, connection):
+    #     return DB2CursorWrapper(connection)
+    #
+    # def _format_parameters(self, parameters):
+    #     parameters = list(parameters)
+    #     for index in range(len(parameters)):
+    #         # With raw SQL queries, datetimes can reach this function
+    #         # without being converted by DateTimeField.get_db_prep_value.
+    #         if settings.USE_TZ and isinstance(parameters[index], datetime.datetime):
+    #             param = parameters[index]
+    #             if timezone.is_naive(param):
+    #                 warnings.warn(u"Received a naive datetime (%s)"
+    #                               u" while time zone support is active." % param,
+    #                               RuntimeWarning)
+    #                 default_timezone = timezone.get_default_timezone()
+    #                 param = timezone.make_aware(param, default_timezone)
+    #             param = param.astimezone(timezone.utc).replace(tzinfo=None)
+    #             parameters[index] = param
+    #     return tuple(parameters)
+    #
+    # # Over-riding this method to modify SQLs which contains format parameter to qmark.
+    # def execute(self, operation, parameters=()):
+    #     if (djangoVersion[0:2] >= (2, 0)):
+    #         operation = str(operation)
+    #     try:
+    #         if operation.find('ALTER TABLE') == 0 and getattr(self.connection, dbms_name) != 'DB2':
+    #             doReorg = 1
+    #         else:
+    #             doReorg = 0
+    #         if operation.count("db2regexExtraField(%s)") > 0:
+    #             operation = operation.replace("db2regexExtraField(%s)", "")
+    #             operation = operation % parameters
+    #             parameters = ()
+    #         if operation.count("%s") > 0:
+    #             operation = operation % (tuple("?" * operation.count("%s")))
+    #         parameters = self._format_parameters(parameters)
+    #
+    #         try:
+    #             if (doReorg == 1):
+    #                 super(DB2CursorWrapper, self).execute(operation, parameters)
+    #                 return self._reorg_tables()
+    #             else:
+    #                 return super(DB2CursorWrapper, self).execute(operation, parameters)
+    #         except IntegrityError as e:
+    #             six.reraise(utils.IntegrityError, utils.IntegrityError(*tuple(six.PY3 and e.args or (e._message,))),
+    #                         sys.exc_info()[2])
+    #             raise
+    #
+    #         except ProgrammingError as e:
+    #             six.reraise(utils.ProgrammingError, utils.ProgrammingError(*tuple(six.PY3 and e.args or (e._message,))),
+    #                         sys.exc_info()[2])
+    #             raise
+    #         except DatabaseError as e:
+    #             six.reraise(utils.DatabaseError, utils.DatabaseError(*tuple(six.PY3 and e.args or (e._message,))),
+    #                         sys.exc_info()[2])
+    #             raise
+    #     except (TypeError):
+    #         return None
+    #
+    # # Over-riding this method to modify SQLs which contains format parameter to qmark.
+    # def executemany(self, operation, seq_parameters):
+    #     try:
+    #         if operation.count("db2regexExtraField(%s)") > 0:
+    #             raise ValueError("Regex not supported in this operation")
+    #         if operation.count("%s") > 0:
+    #             operation = operation % (tuple("?" * operation.count("%s")))
+    #         seq_parameters = [self._format_parameters(parameters) for parameters in seq_parameters]
+    #
+    #         try:
+    #             return super(DB2CursorWrapper, self).executemany(operation, seq_parameters)
+    #         except IntegrityError as e:
+    #             six.reraise(utils.IntegrityError, utils.IntegrityError(*tuple(six.PY3 and e.args or (e._message,))),
+    #                         sys.exc_info()[2])
+    #             raise
+    #         except DatabaseError as e:
+    #             six.reraise(utils.DatabaseError, utils.DatabaseError(*tuple(six.PY3 and e.args or (e._message,))),
+    #                         sys.exc_info()[2])
+    #             raise
+    #     except (IndexError, TypeError):
+    #         return None
+    #
+    # # table reorganization method
+    # def _reorg_tables(self):
+    #     checkReorgSQL = "select tabschema, tabname from sysibmadm.admintabinfo where reorg_pending = 'Y'"
+    #     res = []
+    #     reorgSQLs = []
+    #     parameters = ()
+    #     super(DB2CursorWrapper, self).execute(checkReorgSQL, parameters)
+    #     res = super(DB2CursorWrapper, self).fetchall()
+    #     if res:
+    #         for sName, tName in res:
+    #             reorgSQL = '''CALL SYSPROC.ADMIN_CMD('REORG TABLE "%(sName)s"."%(tName)s"')''' % {
+    #                 'sName': sName, 'tName': tName
+    #             }
+    #             reorgSQLs.append(reorgSQL)
+    #         for sql in reorgSQLs:
+    #             super(DB2CursorWrapper, self).execute(sql)
+    #
+    # # Over-riding this method to modify result set containing datetime and time zone support is active
+    # def fetchone(self):
+    #     row = super(DB2CursorWrapper, self).fetchone()
+    #     if row is None:
+    #         return row
+    #     else:
+    #         return self._fix_return_data(row)
+    #
+    # # Over-riding this method to modify result set containing datetime and time zone support is active
+    # def fetchmany(self, size=0):
+    #     rows = super(DB2CursorWrapper, self).fetchmany(size)
+    #     if rows is None:
+    #         return rows
+    #     else:
+    #         return [self._fix_return_data(row) for row in rows]
+    #
+    # # Over-riding this method to modify result set containing datetime and time zone support is active
+    # def fetchall(self):
+    #     rows = super(DB2CursorWrapper, self).fetchall()
+    #     if rows is None:
+    #         return rows
+    #     else:
+    #         return [self._fix_return_data(row) for row in rows]
+    #
+    # # This method to modify result set containing datetime and time zone support is active
+    # def _fix_return_data(self, row):
+    #     row = list(row)
+    #     index = -1
+    #     for value, desc in zip(row, self.description):
+    #         index = index + 1
+    #         if (desc[1] == Database.DATETIME):
+    #             if settings.USE_TZ and value is not None and timezone.is_naive(value):
+    #                 value = value.replace(tzinfo=timezone.utc)
+    #                 row[index] = value
+    #         else:
+    #             if isinstance(value, six.string_types):
+    #                 row[index] = re.sub(r'[\x00]', '', value)
+    #     return tuple(row)
