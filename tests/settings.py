@@ -12,5 +12,6 @@ DATABASES = {
             'HOST': 'pub400.com',
             'USER': os.environ['TEST_SYSTEM_USERNAME'],
             'PASSWORD': os.environ['TEST_SYSTEM_PASSWORD'],
+            'CURRENTSCHEMA': 'sjames1',
         }
 }

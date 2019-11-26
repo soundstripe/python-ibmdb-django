@@ -95,7 +95,8 @@ class DatabaseWrapper:
 
         connection = Database.connect(dsn, **kwargs)
         if currentschema:
-            connection.set_current_schema(currentschema)
+            cursor = DB2CursorWrapper(connection)
+            cursor.set_current_schema(currentschema)
 
         return connection
 
@@ -135,6 +136,9 @@ class DB2CursorWrapper:
     def get_current_schema(self):
         self.execute('select CURRENT_SCHEMA from sysibm.sysdummy1')
         return self.fetchone()[0]
+
+    def set_current_schema(self, schema):
+        self.execute(f'set CURRENT_SCHEMA = {schema}')
 
     #
     # def next(self):
