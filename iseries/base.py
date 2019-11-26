@@ -43,20 +43,6 @@ from django import VERSION as djangoVersion
 
 from iseries.schemaEditor import DB2SchemaEditor
 
-DatabaseError = Database.DatabaseError
-IntegrityError = Database.IntegrityError
-Error = Database.Error
-InterfaceError = Database.InterfaceError
-DataError = Database.DataError
-OperationalError = Database.OperationalError
-InternalError = Database.InternalError
-ProgrammingError = Database.ProgrammingError
-NotSupportedError = Database.NotSupportedError
-
-version = Database.version.split('.')
-if version < (4, 0, 0):
-    raise ImproperlyConfigured(f'PyODBC 4.0 or later required; you have {version}.')
-
 dbms_name = 'dbname'
 
 
@@ -190,39 +176,35 @@ class DatabaseWrapper(BaseDatabaseWrapper):
         if isinstance(database_options, dict):
             kwargs['options'] = database_options
 
-        if (djangoVersion[0:2] <= (1, 0)):
-            if (hasattr(settings, 'PCONNECT')):
-                kwargs['PCONNECT'] = settings.PCONNECT
-        else:
-            if (settings_dict.keys()).__contains__('PCONNECT'):
-                kwargs['PCONNECT'] = settings_dict['PCONNECT']
+        if (settings_dict.keys()).__contains__('PCONNECT'):
+            kwargs['PCONNECT'] = settings_dict['PCONNECT']
 
-        if ('CURRENTSCHEMA' in settings_dict):
+        if 'CURRENTSCHEMA' in settings_dict:
             database_schema = settings_dict['CURRENTSCHEMA']
             if isinstance(database_schema, str):
                 kwargs['currentschema'] = database_schema
 
-        if ('SECURITY' in settings_dict):
+        if 'SECURITY' in settings_dict:
             database_security = settings_dict['SECURITY']
             if isinstance(database_security, str):
                 kwargs['security'] = database_security
 
-        if ('SSLCLIENTKEYDB' in settings_dict):
+        if 'SSLCLIENTKEYDB' in settings_dict:
             database_sslclientkeydb = settings_dict['SSLCLIENTKEYDB']
             if isinstance(database_sslclientkeydb, str):
                 kwargs['sslclientkeydb'] = database_sslclientkeydb
 
-        if ('SSLCLIENTKEYSTOREDBPASSWORD' in settings_dict):
-            database_sslclientkeystoredbpassword = settings_dict['SSLCLIENTKEYSTOREDBPASSWORD']
+        if 'SSLCLIENTKEYSTOREDBPASSWORD' in settings_dict:
+            database_sslclientkeystoredbpassword: object = settings_dict['SSLCLIENTKEYSTOREDBPASSWORD']
             if isinstance(database_sslclientkeystoredbpassword, str):
                 kwargs['sslclientkeystoredbpassword'] = database_sslclientkeystoredbpassword
 
-        if ('SSLCLIENTKEYSTASH' in settings_dict):
+        if 'SSLCLIENTKEYSTASH' in settings_dict:
             database_sslclientkeystash = settings_dict['SSLCLIENTKEYSTASH']
             if isinstance(database_sslclientkeystash, str):
                 kwargs['sslclientkeystash'] = database_sslclientkeystash
 
-        if ('SSLSERVERCERTIFICATE' in settings_dict):
+        if 'SSLSERVERCERTIFICATE' in settings_dict:
             database_sslservercertificate = settings_dict['SSLSERVERCERTIFICATE']
             if isinstance(database_sslservercertificate, str):
                 kwargs['sslservercertificate'] = database_sslservercertificate

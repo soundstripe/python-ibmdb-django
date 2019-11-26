@@ -29,7 +29,7 @@ from django.db import models
 from django.db.backends.utils import truncate_name
 from django.db.models.fields.related import ManyToManyField
 from django import VERSION as djangoVersion
-import ibm_db_dbi as Database
+from . import Database
 
 Error = Database.Error
 

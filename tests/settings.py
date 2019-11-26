@@ -7,6 +7,7 @@ DATABASES = {
     'default':
         {
             'ENGINE': 'iseries',
-            'NAME': 'test_iseries'
+            'NAME': 'test_iseries',
+            'HOST': 'pub400.com',
         }
 }

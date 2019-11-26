@@ -52,7 +52,7 @@ class DatabaseWrapper(object):
         kwargsKeys = kwargs.keys()
         if (kwargsKeys.__contains__('port') and
                 kwargsKeys.__contains__('host')):
-            kwargs['dsn'] = "DATABASE=%s;HOSTNAME=%s;PORT=%s;PROTOCOL=TCPIP;" % (
+            kwargs['dsn'] = "DRIVER={iSeries Access ODBC Driver};DATABASE=%s;SYSTEM=%s;PORT=%s;PROTOCOL=TCPIP;" % (
                 kwargs.get('database'),
                 kwargs.get('host'),
                 kwargs.get('port')
@@ -86,11 +86,7 @@ class DatabaseWrapper(object):
             kwargs['dsn'] += "SSLSERVERCERTIFICATE=%s;" % (kwargs.get('sslservercertificate'))
             del kwargs['sslservercertificate']
 
-        # Before Django 1.6, autocommit was turned OFF
-        if (djangoVersion[0:2] >= (1, 6)):
-            conn_options = {Database.SQL_ATTR_AUTOCOMMIT: Database.SQL_AUTOCOMMIT_ON}
-        else:
-            conn_options = {Database.SQL_ATTR_AUTOCOMMIT: Database.SQL_AUTOCOMMIT_OFF}
+        conn_options = {'autocommit': False}
         kwargs['conn_options'] = conn_options
         if kwargsKeys.__contains__('options'):
             kwargs.update(kwargs.get('options'))
@@ -103,10 +99,12 @@ class DatabaseWrapper(object):
             pconnect_flag = kwargs['PCONNECT']
             del kwargs['PCONNECT']
 
+        dsn = kwargs.pop('dsn', '')
+
         if pconnect_flag:
-            connection = Database.pconnect(**kwargs)
+            connection = Database.pconnect(dsn, **kwargs)
         else:
-            connection = Database.connect(**kwargs)
+            connection = Database.connect(dsn, **kwargs)
         connection.autocommit = connection.set_autocommit
 
         if SchemaFlag:
@@ -131,7 +129,7 @@ class DatabaseWrapper(object):
         return tuple(int(version) for version in self.connection.server_info()[1].split("."))
 
 
-class DB2CursorWrapper(Database.Cursor):
+class DB2CursorWrapper:
     """
     This is the wrapper around IBM_DB_DBI in order to support format parameter style
     IBM_DB_DBI supports qmark, where as Django support format style, 
@@ -139,7 +137,7 @@ class DB2CursorWrapper(Database.Cursor):
     """
 
     def __init__(self, connection):
-        super(DB2CursorWrapper, self).__init__(connection.conn_handler, connection)
+        self.cursor = connection.cursor()
 
     def __iter__(self):
         return self
