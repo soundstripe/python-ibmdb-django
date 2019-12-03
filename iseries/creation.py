@@ -20,9 +20,12 @@ import sys
 
 from django import VERSION as djangoVersion
 from django.conf import settings
+from django.core.exceptions import ImproperlyConfigured
 from django.core.management import call_command
 from django.db.backends.base.creation import BaseDatabaseCreation
 from django.db.backends.utils import truncate_name
+
+from . import Database
 
 TEST_DBNAME_PREFIX = 'test_'
 
@@ -129,145 +132,14 @@ class DatabaseCreation(BaseDatabaseCreation):
 
         return output
 
-    # Method to create and return test database, before creating test database it takes confirmation from user. 
-    # If test database already exists then it takes confirmation from user to recreate that database .
-    # If create test database not supported in current scenario then it takes confirmation from user to use settings file's database name as test database
-    def create_test_db(self, verbosity=0, autoclobber=False, keepdb=False, serialize=False):
-        kwargs = self.__create_test_kwargs()
-        old_database = kwargs['database']
-        max_db_name_length = self.connection.ops.max_db_name_length()
-        kwargs['database'] = truncate_name("%s%s" % (TEST_DBNAME_PREFIX, old_database), max_db_name_length)
-        kwargsKeys = kwargs.keys()
-        if (kwargsKeys.__contains__('port') and
-                kwargsKeys.__contains__('host')):
-            kwargs['dsn'] = "DATABASE=%s;HOSTNAME=%s;PORT=%s;PROTOCOL=TCPIP;" % (
-                kwargs.get('dbname'),
-                kwargs.get('host'),
-                kwargs.get('port')
-            )
+    def _create_test_db(self, verbosity, autoclobber, keepdb=False):
+        if keepdb:
+            return
         else:
-            kwargs['dsn'] = ''
-        if kwargsKeys.__contains__('port'):
-            del kwargs['port']
+            raise ImproperlyConfigured('pyodbc iseries driver does not support database creation')
 
-        if not autoclobber:
-            confirm = raw_input(
-                "Wants to create %s as test database. Type yes to create it else type no" % (kwargs.get('database')))
-        if autoclobber or confirm == 'yes':
-            try:
-                if verbosity > 1:
-                    print("Creating Test Database %s" % (kwargs.get('database')))
-                Database.createdb(**kwargs)
-            except Exception as inst:
-                message = repr(inst)
-                if (message.find('Not supported:') != -1):
-                    if not autoclobber:
-                        confirm = raw_input(
-                            "Not able to create test database, %s. Type yes to use %s as test database, or no to exit" % (
-                                message.split(":")[1], old_database))
-                    else:
-                        confirm = raw_input(
-                            "Not able to create test database, %s. Type yes to use %s as test database, or no to exit" % (
-                                message.split(":")[1], old_database))
-                    if autoclobber or confirm == 'yes':
-                        kwargs['database'] = old_database
-                        self.__clean_up(self.connection.cursor())
-                        self.connection._commit()
-                        self.connection.close()
-                    else:
-                        print("Tests cancelled")
-                        sys.exit(1)
-                else:
-                    sys.stderr.write("Error occurred during creation of test database: %s" % (message))
-                    index = message.find('SQLCODE')
-
-                    if (message != '') & (index != -1):
-                        error_code = message[(index + 8): (index + 13)]
-                        if (error_code != '-1005'):
-                            print("Tests cancelled")
-                            sys.exit(1)
-                        else:
-                            if not autoclobber:
-                                confirm = raw_input(
-                                    "\nTest database: %s already exist. Type yes to recreate it, or no to exit" % (
-                                        kwargs.get('database')))
-                            else:
-                                confirm = raw_input(
-                                    "\nTest database: %s already exist. Type yes to recreate it, or no to exit" % (
-                                        kwargs.get('database')))
-                            if autoclobber or confirm == 'yes':
-                                if verbosity > 1:
-                                    print(("Recreating Test Database %s" % (kwargs.get('database'))))
-                                Database.recreatedb(**kwargs)
-                            else:
-                                print("Tests cancelled.")
-                                sys.exit(1)
-        else:
-            confirm = raw_input(
-                "Wants to use %s as test database, Type yes to use it as test database or no to exit" % (old_database))
-            if confirm == 'yes':
-                kwargs['database'] = old_database
-                self.__clean_up(self.connection.cursor())
-                self.connection._commit()
-                self.connection.close()
-            else:
-                sys.exit(1)
-
-        test_database = kwargs.get('database')
-        if verbosity > 1:
-            print("Preparing Database...")
-
-        if (djangoVersion[0:2] <= (1, 1)):
-            settings.DATABASE_NAME = test_database
-            settings.__setattr__('PCONNECT', False)
-            call_command('syncdb', verbosity=verbosity, interactive=False)
-        else:
-            self.connection.settings_dict['NAME'] = test_database
-            self.connection.settings_dict['PCONNECT'] = False
-            # Confirm the feature set of the test database
-            if ((1, 2) < djangoVersion[0:2] < (1, 5)):
-                self.connection.features.confirm()
-            if (djangoVersion[0:2] < (1, 7)):
-                call_command('syncdb', database=self.connection.alias, verbosity=verbosity, interactive=False,
-                             load_initial_data=False)
-            else:
-                if (djangoVersion[0:2] >= (2, 0)):
-                    call_command('migrate', database=self.connection.alias, verbosity=verbosity, interactive=False)
-                else:
-                    call_command('migrate', database=self.connection.alias, verbosity=verbosity, interactive=False,
-                                 load_initial_data=False)
-            # We need to then do a flush to ensure that any data installed by custom SQL has been removed.
-            call_command('flush', database=self.connection.alias, verbosity=verbosity, interactive=False)
-        return test_database
-
-    # Method to destroy database.
-    def destroy_test_db(self, old_database_name, verbosity=0):
-        print("Destroying Database...")
-        kwargs = self.__create_test_kwargs()
-        if (old_database_name != kwargs.get('database')):
-            kwargsKeys = kwargs.keys()
-            if (kwargsKeys.__contains__('port') and
-                    kwargsKeys.__contains__('host')):
-                kwargs['dsn'] = "DATABASE=%s;HOSTNAME=%s;PORT=%s;PROTOCOL=TCPIP;" % (
-                    kwargs.get('database'),
-                    kwargs.get('host'),
-                    kwargs.get('port')
-                )
-            else:
-                kwargs['dsn'] = ''
-            if kwargsKeys.__contains__('port'):
-                del kwargs['port']
-            if verbosity > 1:
-                print("Droping Test Database %s" % (kwargs.get('database')))
-            Database.dropdb(**kwargs)
-
-        if (djangoVersion[0:2] <= (1, 1)):
-            settings.DATABASE_NAME = old_database_name
-            settings.PCONNECT = True
-        else:
-            self.connection.settings_dict['NAME'] = old_database_name
-            self.connection.settings_dict['PCONNECT'] = True
-        return old_database_name
+    def _destroy_test_db(self, test_database_name, verbosity):
+        raise ImproperlyConfigured('pyodbc iseries driver does not support database destruction (use --keepdb)')
 
     # As DB2 does not allow to insert NULL value in UNIQUE col, hence modifing model.
     def sql_create_model(self, model, style, known_models=set()):
@@ -328,29 +200,17 @@ class DatabaseCreation(BaseDatabaseCreation):
 
     # private method to create dictionary of login credentials for test database
     def __create_test_kwargs(self):
-        if (djangoVersion[0:2] <= (1, 1)):
-            if (isinstance(settings.TEST_DATABASE_NAME, str) and
-                    (settings.TEST_DATABASE_NAME != '')):
-                database = settings.TEST_DATABASE_NAME
-            else:
-                database = settings.DATABASE_NAME
-            database_user = settings.DATABASE_USER
-            database_pass = settings.DATABASE_PASSWORD
-            database_host = settings.DATABASE_HOST
-            database_port = settings.DATABASE_PORT
-            settings.DATABASE_SUPPORTS_TRANSACTIONS = True
+        if (isinstance(self.connection.settings_dict['NAME'], str) and
+                (self.connection.settings_dict['NAME'] != '')):
+            database = self.connection.settings_dict['NAME']
         else:
-            if (isinstance(self.connection.settings_dict['NAME'], str) and
-                    (self.connection.settings_dict['NAME'] != '')):
-                database = self.connection.settings_dict['NAME']
-            else:
-                from django.core.exceptions import ImproperlyConfigured
-                raise ImproperlyConfigured("the database Name doesn't exist")
-            database_user = self.connection.settings_dict['USER']
-            database_pass = self.connection.settings_dict['PASSWORD']
-            database_host = self.connection.settings_dict['HOST']
-            database_port = self.connection.settings_dict['PORT']
-            self.connection.settings_dict['SUPPORTS_TRANSACTIONS'] = True
+            from django.core.exceptions import ImproperlyConfigured
+            raise ImproperlyConfigured("the database Name doesn't exist")
+        database_user = self.connection.settings_dict['USER']
+        database_pass = self.connection.settings_dict['PASSWORD']
+        database_host = self.connection.settings_dict['HOST']
+        database_port = self.connection.settings_dict['PORT']
+        self.connection.settings_dict['SUPPORTS_TRANSACTIONS'] = True
 
         kwargs = {}
         kwargs['database'] = database

@@ -334,7 +334,7 @@ class DatabaseOperations(BaseDatabaseOperations):
     # Deleting all the rows from the list of tables provided and resetting all the
     # sequences.
     def sql_flush(self, style, tables, sequences, allow_cascade=False):
-        curr_schema = self.connection.connection.get_current_schema().upper()
+        curr_schema = self.connection.cursor().get_current_schema().upper()
         sqls = []
         if tables:
             # check for zOS DB2 server

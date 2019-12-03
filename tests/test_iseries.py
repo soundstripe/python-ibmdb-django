@@ -9,6 +9,16 @@ from django.db import connection
 #     django.db.backends.iseries = iseries
 
 
+# @pytest.fixture(scope='session')
+# def django_db_createdb():
+#     return False
+#
+#
+# @pytest.fixture(scope='session')
+# def django_db_keepdb():
+#     return True
+#
+
 @pytest.mark.django_db
 def test_something():
     assert True
