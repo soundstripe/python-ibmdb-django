@@ -2,6 +2,7 @@ import pytest
 from django.core.exceptions import ImproperlyConfigured
 
 from iseries.creation import DatabaseCreation
+from tests.models import Object, ObjectReference
 
 
 @pytest.mark.django_db
@@ -40,3 +41,37 @@ def test_create_test_db(connection):
         # Db2 for iSeries does not support creating new databases
         creation._create_test_db(verbosity=0, autoclobber=False, keepdb=False)
     creation._create_test_db(verbosity=0, autoclobber=False, keepdb=True)
+
+
+@pytest.mark.django_db
+def test_can_reference_existent():
+    obj = Object.objects.create()
+    ref = ObjectReference.objects.create(obj=obj)
+    assert ref.obj == obj
+
+    ref = ObjectReference.objects.get(obj=obj)
+    assert ref.obj == obj
+
+
+@pytest.mark.django_db
+def test_can_reference_non_existent():
+    assert not Object.objects.filter(id=12345).exists()
+    ref = ObjectReference.objects.create(obj_id=12345)
+    ref_new = ObjectReference.objects.get(obj_id=12345)
+    assert ref == ref_new
+
+    with pytest.raises(Object.DoesNotExist):
+        ref.obj
+
+
+@pytest.mark.django_db
+def test_many_to_many():
+    obj = Object.objects.create()
+    obj.related_objects.create()
+    assert Object.objects.count() == 2
+    assert obj.related_objects.count() == 1
+
+    intermediary_model = Object._meta.get_field("related_objects").remote_field.through
+    intermediary_model.objects.create(from_object_id=obj.id, to_object_id=12345)
+    assert obj.related_objects.count() == 1
+    assert intermediary_model.objects.count() == 2

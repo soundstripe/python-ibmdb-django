@@ -15,3 +15,20 @@ DATABASES = {
             'CURRENTSCHEMA': os.environ['TEST_SYSTEM_SCHEMA'],
         }
 }
+
+# Use a fast hasher to speed up tests.
+PASSWORD_HASHERS = [
+    'django.contrib.auth.hashers.MD5PasswordHasher',
+]
+
+INSTALLED_APPS = [
+    'django.contrib.contenttypes',
+    'django.contrib.auth',
+    'django.contrib.sites',
+    'django.contrib.sessions',
+    'django.contrib.messages',
+    'django.contrib.admin.apps.SimpleAdminConfig',
+    'django.contrib.staticfiles',
+
+    'tests',
+]
