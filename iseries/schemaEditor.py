@@ -698,3 +698,12 @@ class DB2SchemaEditor(BaseDatabaseSchemaEditor):
                 'columns': ', '.join(column.replace(old_field.column, new_field.column) for column in columns),
                 'extra': ""
             })
+
+    def quote_value(self, value):
+        if isinstance(value, str):
+            return f"'{value}'"
+        if isinstance(value, (datetime.datetime, datetime.date)):
+            return value.isoformat().replace('T', ' ')
+        if isinstance(value, bool):
+            return '1' if value else '0'
+        return str(value)
