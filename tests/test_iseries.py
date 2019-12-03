@@ -1,4 +1,7 @@
 import pytest
+from django.core.exceptions import ImproperlyConfigured
+
+from iseries.creation import DatabaseCreation
 
 
 @pytest.mark.django_db
@@ -28,3 +31,12 @@ def editor(connection):
 def test_quote_value(editor, value, expected):
     actual = editor.quote_value(value)
     assert expected == actual
+
+
+# noinspection PyProtectedMember
+def test_create_test_db(connection):
+    creation = DatabaseCreation(connection)
+    with pytest.raises(ImproperlyConfigured):
+        # Db2 for iSeries does not support creating new databases
+        creation._create_test_db(verbosity=0, autoclobber=False, keepdb=False)
+    creation._create_test_db(verbosity=0, autoclobber=False, keepdb=True)
