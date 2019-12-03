@@ -32,3 +32,11 @@ INSTALLED_APPS = [
 
     'tests',
 ]
+
+MIGRATION_MODULES = {
+    # This lets us skip creating migrations for the test models as many of
+    # them depend on one of the following contrib applications.
+    'auth': None,
+    'contenttypes': None,
+    'sessions': None,
+}

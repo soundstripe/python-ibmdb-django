@@ -230,12 +230,6 @@ class DatabaseOperations(BaseDatabaseOperations):
     def datetime_cast_sql(self):
         return "%s"
 
-    def deferrable_sql(self):
-        if getattr(self.connection.connection, dbms_name) == 'DB2':
-            return "ON DELETE NO ACTION NOT ENFORCED"
-        else:
-            return ""
-
     # Function to return SQL from dropping foreign key.
     def drop_foreignkey_sql(self):
         return "DROP FOREIGN KEY"

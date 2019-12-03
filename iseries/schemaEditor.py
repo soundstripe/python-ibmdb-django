@@ -84,18 +84,7 @@ class DB2SchemaEditor(BaseDatabaseSchemaEditor):
         return sql, []
 
     def prepare_default(self, value):
-        CONVERT_STR = (datetime.datetime, datetime.date, datetime.time, six.string_types)
-
-        if callable(value):
-            value = value()
-
-        if isinstance(value, CONVERT_STR):
-            value = "'%s'" % value
-        elif isinstance(value, bool):
-            value = '1' if value else '0'
-        else:
-            value = str(value)
-        return value
+        return self.quote_value(value)
 
     def alter_field(self, model, old_field, new_field, strict=False):
         alter_field_data_type = False
@@ -700,10 +689,8 @@ class DB2SchemaEditor(BaseDatabaseSchemaEditor):
             })
 
     def quote_value(self, value):
-        if isinstance(value, str):
+        if isinstance(value, (datetime.datetime, datetime.date, datetime.time, str)):
             return f"'{value}'"
-        if isinstance(value, (datetime.datetime, datetime.date)):
-            return value.isoformat().replace('T', ' ')
         if isinstance(value, bool):
             return '1' if value else '0'
         return str(value)
