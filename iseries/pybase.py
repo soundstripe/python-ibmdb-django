@@ -125,7 +125,7 @@ class DB2CursorWrapper:
     """
 
     def __init__(self, connection):
-        self.cursor = connection.cursor()
+        self.cursor: Database.Cursor = connection.cursor()
 
     def __iter__(self):
         return self.cursor
@@ -139,6 +139,17 @@ class DB2CursorWrapper:
 
     def set_current_schema(self, schema):
         self.execute(f'set CURRENT_SCHEMA = {schema}')
+
+    def close(self):
+        """
+        Django calls close() twice on some cursors, but pyodbc does not allow this.
+        pyodbc deletes the 'connection' attribute when closing a cursor, so we check for that.
+
+        In the unlikely event that this code prevents close() from being called, pyodbc will close
+        the cursor automatically when it goes out of scope.
+        """
+        if getattr(self, 'connection', False):
+            self.cursor.close()
 
     #
     # def next(self):
