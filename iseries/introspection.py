@@ -18,6 +18,7 @@
 import sys
 from collections import namedtuple
 
+from pyodbc import Cursor
 
 from . import Database
 
@@ -26,7 +27,7 @@ try:
 except ImportError:
     from django.db.backends.base.introspection import BaseDatabaseIntrospection, FieldInfo
 
-from django import VERSION as djangoVersion
+TableInfo = namedtuple('TableInfo', ['name', 'type'])
 
 
 class DatabaseIntrospection(BaseDatabaseIntrospection):
@@ -60,16 +61,14 @@ class DatabaseIntrospection(BaseDatabaseIntrospection):
         return super(DatabaseIntrospection, self).get_field_type(data_type, description)
 
     # Converting table name to lower case.
-    def table_name_converter(self, name):
+    def mangle_table_name(self, name):
         return name.lower()
 
     # Getting the list of all tables, which are present under current schema.
     def get_table_list(self, cursor):
-        TableInfo = namedtuple('TableInfo', ['name', 'type'])
-        table_list = []
-        for table in cursor.tables(cursor.get_current_schema()):
-            table_list.append(TableInfo(table['TABLE_NAME'].lower(), 't'))
-        return table_list
+        table_query = """select table_name, lower(table_type) from qsys2.systables where table_schema = ?"""
+        tables = cursor.execute(table_query, params=cursor.get_current_schema())
+        return [TableInfo(self.mangle_table_name(t_name), t_type) for t_name, t_type in tables]
 
     # Generating a dictionary for foreign key details, which are present under current schema.
     def get_relations(self, cursor, table_name):
