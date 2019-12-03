@@ -60,15 +60,11 @@ class DatabaseIntrospection(BaseDatabaseIntrospection):
     def get_field_type(self, data_type, description):
         return super(DatabaseIntrospection, self).get_field_type(data_type, description)
 
-    # Converting table name to lower case.
-    def mangle_table_name(self, name):
-        return name.lower()
-
     # Getting the list of all tables, which are present under current schema.
     def get_table_list(self, cursor):
         table_query = """select table_name, lower(table_type) from qsys2.systables where table_schema = ?"""
         tables = cursor.execute(table_query, params=cursor.get_current_schema())
-        return [TableInfo(self.mangle_table_name(t_name), t_type) for t_name, t_type in tables]
+        return [TableInfo(self.identifier_converter(t_name), t_type) for t_name, t_type in tables]
 
     # Generating a dictionary for foreign key details, which are present under current schema.
     def get_relations(self, cursor, table_name):
@@ -257,3 +253,6 @@ class DatabaseIntrospection(BaseDatabaseIntrospection):
                 seq_list.append({'table': table_name, 'column': f.column})
                 break
         return seq_list
+
+    def identifier_converter(self, name):
+        return name.lower()
