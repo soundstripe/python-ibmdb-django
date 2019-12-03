@@ -8,10 +8,10 @@ DATABASES = {
     'default':
         {
             'ENGINE': 'iseries',
-            'NAME': 'test_iseries',
+            'NAME': 'iseries',  # arbitrary database name for db2 on iseries
             'HOST': 'pub400.com',
             'USER': os.environ['TEST_SYSTEM_USERNAME'],
             'PASSWORD': os.environ['TEST_SYSTEM_PASSWORD'],
-            'CURRENTSCHEMA': 'sjames1',
+            'CURRENTSCHEMA': os.environ['TEST_SYSTEM_SCHEMA'],
         }
 }
