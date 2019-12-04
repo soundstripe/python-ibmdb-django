@@ -24,6 +24,8 @@ import sys
 import warnings
 
 # For checking django's version
+from typing import Optional
+
 from django import VERSION as djangoVersion
 from django.conf import settings
 from django.db import utils
@@ -43,6 +45,9 @@ OperationalError = Database.OperationalError
 InternalError = Database.InternalError
 ProgrammingError = Database.ProgrammingError
 NotSupportedError = Database.NotSupportedError
+
+
+FORMAT_QMARK_REGEX = re.compile(r'(?<!%)%s')
 
 
 class DatabaseWrapper:
@@ -121,7 +126,9 @@ class DB2CursorWrapper:
     """
     This is the wrapper around IBM_DB_DBI in order to support format parameter style
     IBM_DB_DBI supports qmark, where as Django support format style, 
-    hence this conversion is required. 
+    hence this conversion is required.
+
+    pyodbc.Cursor cannot be subclassed, so we store it as an attribute
     """
 
     def __init__(self, connection):
@@ -150,6 +157,51 @@ class DB2CursorWrapper:
         """
         if getattr(self, 'connection', False):
             self.cursor.close()
+
+    def execute(self, query, params=None):
+        if params is None:
+            return self.cursor.execute(query)
+        query = self.convert_query(query)
+        result = self.cursor.execute(query, params)
+        if result == self.cursor:
+            return self
+        return result
+
+    def executemany(self, query, param_list):
+        query = self.convert_query(query)
+        result = self.cursor.executemany(query, param_list)
+        if result == self.cursor:
+            return self
+        return result
+
+    def convert_query(self, query):
+        """
+        Django uses "format" style placeholders, but the iaccess odbc driver uses "qmark" style.
+        This fixes it -- but note that if you want to use a literal "%s" in a query,
+        you'll need to use "%%s".
+        """
+        return FORMAT_QMARK_REGEX.sub('?', query).replace('%%', '%')
+
+    def _row_factory(self, row: Optional[Database.Row]):
+        if row is None:
+            return row
+        return tuple(row)
+
+    def fetchone(self):
+        return self._row_factory(self.cursor.fetchone())
+
+    def fetchmany(self, size):
+        return [self._row_factory(row) for row in self.cursor.fetchmany(size)]
+
+    def fetchall(self):
+        return [self._row_factory(row) for row in self.cursor.fetchall()]
+
+    @property
+    def last_identity_val(self):
+        result = self.execute('select IDENTITY_VAL_LOCAL() as identity from sysibm.sysdummy1');
+        row = result.fetchone()
+        return row[0]
+
 
     #
     # def next(self):

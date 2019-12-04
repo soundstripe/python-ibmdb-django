@@ -251,16 +251,7 @@ class DatabaseOperations(BaseDatabaseOperations):
 
     # Function to return value of auto-generated field of last executed insert query. 
     def last_insert_id(self, cursor, table_name, pk_name):
-        if not _IS_JYTHON:
-            return cursor.last_identity_val
-        else:
-            operation = 'select IDENTITY_VAL_LOCAL() from sysibm.sysdummy1'
-            cursor.execute(operation)
-            row = cursor.fetchone()
-            last_identity_val = None
-            if row is not None:
-                last_identity_val = int(row[0])
-            return last_identity_val
+        return cursor.last_identity_val
 
     # In case of WHERE clause, if the search is required to be case insensitive then converting 
     # left hand side field to upper.
