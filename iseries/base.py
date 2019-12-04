@@ -85,6 +85,7 @@ class DatabaseFeatures(BaseDatabaseFeatures):
     can_introspect_null = True
     can_introspect_ip_address_field = False
     can_introspect_time_field = True
+    bare_select_suffix = ' FROM SYSIBM.SYSDUMMY1'
 
 
 class DatabaseValidation(BaseDatabaseValidation):
