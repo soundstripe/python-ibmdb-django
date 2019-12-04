@@ -168,6 +168,9 @@ class DB2CursorWrapper:
         return result
 
     def executemany(self, query, param_list):
+        if not param_list:
+            # empty param_list means do nothing (execute the query zero times)
+            return
         query = self.convert_query(query)
         result = self.cursor.executemany(query, param_list)
         if result == self.cursor:
