@@ -26,6 +26,7 @@ import warnings
 # For checking django's version
 from typing import Optional
 
+import sqlparse
 from django import VERSION as djangoVersion
 from django.conf import settings
 from django.db import utils
@@ -162,10 +163,33 @@ class DB2CursorWrapper:
         if params is None:
             return self.cursor.execute(query)
         query = self.convert_query(query)
+        query, params = self._replace_placeholders_in_select_clause(params, query)
         result = self.cursor.execute(query, params)
         if result == self.cursor:
             return self
         return result
+
+    def _replace_placeholders_in_select_clause(self, params, query):
+        """Db2 for i does not allow placeholders in select clause; this converts them to literals"""
+        if isinstance(params, tuple):
+            params = list(params)
+        current_param_idx = -1
+        in_select_clause = False
+        tmp = []
+        parsed_statement = sqlparse.parse(query)[0]
+        for t in parsed_statement.flatten():
+            if t.ttype == sqlparse.tokens.Name.Placeholder:  # '?'
+                current_param_idx += 1
+                if in_select_clause:
+                    quoted_val = self.quote_value(params.pop(current_param_idx))
+                    t = sqlparse.sql.Token(sqlparse.tokens.String, quoted_val)
+            elif t.normalized == 'SELECT':
+                in_select_clause = True
+            elif t.normalized == 'FROM':
+                in_select_clause = False
+            tmp.append(str(t))
+        query = ''.join(tmp)
+        return query, params
 
     def executemany(self, query, param_list):
         if not param_list:
@@ -205,6 +229,12 @@ class DB2CursorWrapper:
         row = result.fetchone()
         return row[0]
 
+    def quote_value(self, value):
+        if isinstance(value, (datetime.datetime, datetime.date, datetime.time, str)):
+            return f"'{value}'"
+        if isinstance(value, bool):
+            return '1' if value else '0'
+        return str(value)
 
     #
     # def next(self):

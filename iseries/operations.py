@@ -238,13 +238,6 @@ class DatabaseOperations(BaseDatabaseOperations):
     def drop_sequence_sql(self, table):
         return "ALTER TABLE %s ALTER COLUMN ID DROP IDENTITY" % (self.quote_name(table))
 
-    # This function casts the field and returns it for use in the where clause
-    def field_cast_sql(self, db_type, internal_type=None):
-        if db_type == 'CLOB':
-            return "VARCHAR(%s, 4096)"
-        else:
-            return " %s"
-
     def fulltext_search_sql(self, field_name):
         sql = "WHERE %s = ?" % field_name
         return sql

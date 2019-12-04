@@ -13,6 +13,10 @@ DATABASES = {
             'USER': os.environ['TEST_SYSTEM_USERNAME'],
             'PASSWORD': os.environ['TEST_SYSTEM_PASSWORD'],
             'CURRENTSCHEMA': os.environ['TEST_SYSTEM_SCHEMA'],
+        },
+    'other':
+        {
+            'ENGINE': 'django.db.backends.sqlite3',
         }
 }
 
