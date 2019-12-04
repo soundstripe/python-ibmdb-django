@@ -166,9 +166,9 @@ class DatabaseOperations(BaseDatabaseOperations):
                 field_name = "%s + %s HOURS + %s MINUTES" % (field_name, hr, min)
 
         if lookup_type.upper() == 'WEEK_DAY':
-            return " DAYOFWEEK(%s) " % (field_name), []
+            return " DAYOFWEEK(%s) " % (field_name)
         else:
-            return " %s(%s) " % (lookup_type.upper(), field_name), []
+            return " %s(%s) " % (lookup_type.upper(), field_name)
 
     # Truncating the date value on the basic of lookup type.
     # e.g If input is 2008-12-04 and month then output will be 2008-12-01 00:00:00
@@ -312,97 +312,20 @@ class DatabaseOperations(BaseDatabaseOperations):
     # Deleting all the rows from the list of tables provided and resetting all the
     # sequences.
     def sql_flush(self, style, tables, sequences, allow_cascade=False):
-        curr_schema = self.connection.cursor().get_current_schema().upper()
-        sqls = []
         if tables:
-            # check for zOS DB2 server
-            if getattr(self.connection.connection, dbms_name, 'DB2') != 'DB2':
-                fk_tab = 'TABNAME'
-                fk_tabschema = 'TABSCHEMA'
-                fk_const = 'CONSTNAME'
-                fk_systab = 'SYSCAT.TABCONST'
-                type_check_string = "type = 'F' and"
-                sqls.append('''CREATE PROCEDURE FKEY_ALT_CONST(django_tabname VARCHAR(128), curr_schema VARCHAR(128))
-                    LANGUAGE SQL
-                    P1: BEGIN
-                        DECLARE fktable varchar(128);
-                        DECLARE fkconst varchar(128);
-                        DECLARE row_count integer;
-                        DECLARE alter_fkey_sql varchar(350);
-                        DECLARE cur1 CURSOR for SELECT %(fk_tab)s, %(fk_const)s FROM %(fk_systab)s WHERE %(type_check_string)s %(fk_tabschema)s = curr_schema and ENFORCED = 'N';
-                        DECLARE cur2 CURSOR for SELECT %(fk_tab)s, %(fk_const)s FROM %(fk_systab)s WHERE %(type_check_string)s %(fk_tab)s = django_tabname and %(fk_tabschema)s = curr_schema and ENFORCED = 'Y';
-                        IF ( django_tabname = '' ) THEN
-                            SET row_count = 0;
-                            SELECT count( * ) INTO row_count FROM %(fk_systab)s WHERE %(type_check_string)s %(fk_tabschema)s = curr_schema and ENFORCED = 'N';
-                            IF ( row_count > 0 ) THEN
-                                OPEN cur1;
-                                WHILE( row_count > 0 ) DO 
-                                    FETCH cur1 INTO fktable, fkconst;
-                                    IF ( LOCATE( ' ', fktable ) > 0 ) THEN 
-                                        SET alter_fkey_sql = 'ALTER TABLE ' || '\"' || fktable || '\"' ||' ALTER FOREIGN KEY ';
-                                    ELSE
-                                        SET alter_fkey_sql = 'ALTER TABLE ' || fktable || ' ALTER FOREIGN KEY ';
-                                    END IF;
-                                    IF ( LOCATE( ' ', fkconst ) > 0) THEN
-                                        SET alter_fkey_sql = alter_fkey_sql || '\"' || fkconst || '\"' || ' ENFORCED';
-                                    ELSE
-                                        SET alter_fkey_sql = alter_fkey_sql || fkconst || ' ENFORCED';
-                                    END IF;
-                                    execute immediate alter_fkey_sql;
-                                    SET row_count = row_count - 1;
-                                END WHILE;
-                                CLOSE cur1;
-                            END IF;
-                        ELSE
-                            SET row_count = 0;
-                            SELECT count( * ) INTO row_count FROM %(fk_systab)s WHERE %(type_check_string)s %(fk_tab)s = django_tabname and %(fk_tabschema)s = curr_schema and ENFORCED = 'Y';
-                            IF ( row_count > 0 ) THEN
-                                OPEN cur2;
-                                WHILE( row_count > 0 ) DO 
-                                    FETCH cur2 INTO fktable, fkconst;
-                                    IF ( LOCATE( ' ', fktable ) > 0 ) THEN 
-                                        SET alter_fkey_sql = 'ALTER TABLE ' || '\"' || fktable || '\"' ||' ALTER FOREIGN KEY ';
-                                    ELSE
-                                        SET alter_fkey_sql = 'ALTER TABLE ' || fktable || ' ALTER FOREIGN KEY ';
-                                    END IF;
-                                    IF ( LOCATE( ' ', fkconst ) > 0) THEN
-                                        SET alter_fkey_sql = alter_fkey_sql || '\"' || fkconst || '\"' || ' NOT ENFORCED';
-                                    ELSE
-                                        SET alter_fkey_sql = alter_fkey_sql || fkconst || ' NOT ENFORCED';
-                                    END IF;
-                                    execute immediate alter_fkey_sql;
-                                    SET row_count = row_count - 1;
-                                END WHILE;
-                                CLOSE cur2;
-                            END IF;
-                        END IF;
-                    END P1''' % {
-                    'fk_tab': fk_tab, 'fk_tabschema': fk_tabschema, 'fk_const': fk_const, 'fk_systab': fk_systab,
-                    'type_check_string': type_check_string
-                })
+            sqls = [' '.join([style.SQL_KEYWORD("DELETE"),
+                              style.SQL_KEYWORD("FROM"),
+                              style.SQL_TABLE("%s" % self.quote_name(table)),
+                              style.SQL_KEYWORD("WHERE"),
+                              "1 = 1"]) for table in tables]
 
-            if getattr(self.connection.connection, dbms_name) != 'DB2':
-                for table in tables:
-                    sqls.append("CALL FKEY_ALT_CONST( '%s', '%s' );" % (table.upper(), curr_schema))
-            else:
-                sqls = []
-
-            for table in tables:
-                sqls.append(style.SQL_KEYWORD("DELETE") + " " +
-                            style.SQL_KEYWORD("FROM") + " " +
-                            style.SQL_TABLE("%s" % self.quote_name(table)))
-
-            if getattr(self.connection.connection, dbms_name) != 'DB2':
-                sqls.append("CALL FKEY_ALT_CONST( '' , '%s' );" % (curr_schema,))
-                sqls.append("DROP PROCEDURE FKEY_ALT_CONST;")
-
-            for sequence in sequences:
-                if (sequence['column'] != None):
-                    sqls.append(style.SQL_KEYWORD("ALTER TABLE") + " " +
-                                style.SQL_TABLE("%s" % self.quote_name(sequence['table'])) +
-                                " " + style.SQL_KEYWORD("ALTER COLUMN") + " %s "
-                                % self.quote_name(sequence['column']) +
-                                style.SQL_KEYWORD("RESTART WITH 1"))
+            sqls.extend(' '.join([style.SQL_KEYWORD("ALTER TABLE"),
+                                  style.SQL_TABLE("%s" % self.quote_name(sequence['table'])),
+                                  style.SQL_KEYWORD("ALTER COLUMN"),
+                                  self.quote_name(sequence['column']),
+                                  style.SQL_KEYWORD("RESTART WITH 1")])
+                        for sequence in sequences
+                        if sequence['column'] is not None)
             return sqls
         else:
             return []
