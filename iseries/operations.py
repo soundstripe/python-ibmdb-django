@@ -527,7 +527,7 @@ class DatabaseOperations(BaseDatabaseOperations):
             bulk_values_sql = "VALUES " + ", ".join([values_sql] * len(num_values))
         return bulk_values_sql
 
-    def for_update_sql(self, nowait=False):
+    def for_update_sql(self, nowait=False, skip_locked=False, of=()):
         # DB2 doesn't support nowait select for update
         if nowait:
             raise utils.DatabaseError("Nowait Select for update not supported ")
