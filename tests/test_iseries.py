@@ -60,7 +60,9 @@ def test_can_reference_non_existent():
     ref_new = ObjectReference.objects.get(obj_id=12345)
     assert ref == ref_new
 
+    # noinspection PyTypeChecker
     with pytest.raises(Object.DoesNotExist):
+        # noinspection PyStatementEffect
         ref.obj
 
 
