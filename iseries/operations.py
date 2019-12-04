@@ -323,7 +323,7 @@ class DatabaseOperations(BaseDatabaseOperations):
         sqls = []
         if tables:
             # check for zOS DB2 server
-            if getattr(self.connection.connection, dbms_name) != 'DB2':
+            if getattr(self.connection.connection, dbms_name, 'DB2') != 'DB2':
                 fk_tab = 'TABNAME'
                 fk_tabschema = 'TABSCHEMA'
                 fk_const = 'CONSTNAME'
