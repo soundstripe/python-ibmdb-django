@@ -534,8 +534,3 @@ class DatabaseOperations(BaseDatabaseOperations):
         else:
             return 'WITH RS USE AND KEEP UPDATE LOCKS'
 
-    def distinct_sql(self, fields):
-        if fields:
-            raise ValueError("distinct_on_fields not supported")
-        else:
-            return 'DISTINCT'
