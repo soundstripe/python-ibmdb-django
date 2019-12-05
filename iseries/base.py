@@ -20,28 +20,23 @@
 DB2 database backend for Django.
 Requires: ibm_db_dbi (http://pypi.python.org/pypi/ibm_db) for python
 """
-import sys
+import string
 
 from django.core.exceptions import ImproperlyConfigured
-
-# Importing class from base module of django.db.backends
-
-from django.db.backends.base.features import BaseDatabaseFeatures
+from django.db import utils
 from django.db.backends.base.base import BaseDatabaseWrapper
+from django.db.backends.base.features import BaseDatabaseFeatures
 from django.db.backends.base.validation import BaseDatabaseValidation
 
+import iseries.pybase as Base
 # Importing internal classes from iseries package.
 from iseries.client import DatabaseClient
 from iseries.creation import DatabaseCreation
 from iseries.introspection import DatabaseIntrospection
 from iseries.operations import DatabaseOperations
-import iseries.pybase as Base
+from iseries.schemaEditor import DB2SchemaEditor
 from . import Database
 
-# For checking django's version
-from django import VERSION as djangoVersion
-
-from iseries.schemaEditor import DB2SchemaEditor
 
 dbms_name = 'dbname'
 
@@ -247,3 +242,7 @@ class DatabaseWrapper(BaseDatabaseWrapper):
 
     def schema_editor(self, *args, **kwargs):
         return DB2SchemaEditor(self, *args, **kwargs)
+
+    def disable_constraint_checking(self):
+        """No way to disable constraints for a single transaction on Db2 for iSeries"""
+        return False

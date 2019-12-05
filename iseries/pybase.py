@@ -114,7 +114,13 @@ class DatabaseWrapper:
         return DB2CursorWrapper(connection)
 
     def close(self, connection):
-        connection.close()
+        try:
+            connection.close()
+        except ProgrammingError as e:
+            if str(e) == 'Attempt to use a closed connection.':
+                pass
+            else:
+                raise
 
     def get_server_version(self, connection):
         self.connection = connection
@@ -164,6 +170,7 @@ class DB2CursorWrapper:
             return self.cursor.execute(query)
         query = self.convert_query(query)
         query, params = self._replace_placeholders_in_select_clause(params, query)
+        print(query, params)
         result = self.cursor.execute(query, params)
         if result == self.cursor:
             return self

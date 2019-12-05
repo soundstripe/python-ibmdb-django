@@ -62,8 +62,8 @@ class DatabaseIntrospection(BaseDatabaseIntrospection):
 
     # Getting the list of all tables, which are present under current schema.
     def get_table_list(self, cursor):
-        table_query = """select table_name, lower(table_type) from qsys2.systables where table_schema = ?"""
-        tables = cursor.execute(table_query, params=cursor.get_current_schema())
+        table_query = "select table_name, lower(table_type) from qsys2.systables where table_schema = current_schema"
+        tables = cursor.execute(table_query)
         return [TableInfo(self.identifier_converter(t_name), t_type) for t_name, t_type in tables]
 
     # Generating a dictionary for foreign key details, which are present under current schema.

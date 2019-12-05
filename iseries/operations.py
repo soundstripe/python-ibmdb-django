@@ -330,9 +330,11 @@ class DatabaseOperations(BaseDatabaseOperations):
         else:
             return []
 
-    # Table many contains rows when this is get called, hence resetting sequence
-    # to a large value (10000).
     def sequence_reset_sql(self, style, model_list):
+        """
+        Note: Db2 for iSeries cannot reset a table's primary key sequence if you have an open transaction
+        that has already inserted/updated that table.
+        """
         from django.db import models
         cursor = self.connection.cursor()
         sqls = []
