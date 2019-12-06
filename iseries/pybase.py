@@ -169,9 +169,11 @@ class DB2CursorWrapper:
 
     def execute(self, query, params=None):
         if params is None:
-            return self.cursor.execute(query)
-        query = self.convert_query(query)
-        query, params = self._replace_placeholders_in_select_clause(params, query)
+            params = tuple()
+        else:
+            query = self.convert_query(query)
+            query, params = self._replace_placeholders_in_select_clause(params, query)
+
         try:
             result = self.cursor.execute(query, params)
         except Database.Error as e:
