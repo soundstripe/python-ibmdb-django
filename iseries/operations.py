@@ -79,31 +79,15 @@ class DatabaseOperations(BaseDatabaseOperations):
             raise NotImplementedError("sample variance function not supported")
 
     def get_db_converters(self, expression):
+        """
+        Get a list of functions needed to convert field data.
+        """
         converters = super(DatabaseOperations, self).get_db_converters(expression)
 
-        field_type = expression.output_field.get_internal_type()
-        if field_type in ('BinaryField',):
-            converters.append(self.convert_binaryfield_value)
-            #  else:
-        #   converters.append(self.convert_empty_values)
-        """Get a list of functions needed to convert field data.
-
-        Some field types on some backends do not provide data in the correct
-        format, this is the hook for coverter functions.
-        """
+        internal_type = expression.output_field.get_internal_type()
+        if internal_type == 'UUIDField':
+            converters.append(self.convert_uuidfield_value)
         return converters
-
-    def convert_empty_values(self, value, expression, context):
-        # Oracle stores empty strings as null. We need to undo this in
-        # order to adhere to the Django convention of using the empty
-        # string instead of null, but only if the field accepts the
-        # empty string.
-        field = expression.output_field
-        if value is None and field.empty_strings_allowed:
-            value = ''
-            if field.get_internal_type() == 'BinaryField':
-                value = b''
-        return value
 
     def combine_expression(self, operator, sub_expressions):
         if operator == '%%':
@@ -123,7 +107,9 @@ class DatabaseOperations(BaseDatabaseOperations):
             sub_expressions[1] = strr.replace('+', '-')
             return super(DatabaseOperations, self).combine_expression(operator, sub_expressions)
 
-    def convert_binaryfield_value(self, value, expression, connections, context):
+    def convert_uuidfield_value(self, value, expression, connection):
+        if value is not None:
+            value = uuid.UUID(value)
         return value
 
     def format_for_duration_arithmetic(self, sql):

@@ -9,7 +9,7 @@ DATABASES = {
         {
             'ENGINE': 'iseries',
             'NAME': 'iseries',  # arbitrary database name for db2 on iseries
-            'HOST': 'pub400.com',
+            'HOST': os.environ['TEST_SYSTEM_HOST'],
             'USER': os.environ['TEST_SYSTEM_USERNAME'],
             'PASSWORD': os.environ['TEST_SYSTEM_PASSWORD'],
             'CURRENTSCHEMA': os.environ['TEST_SYSTEM_SCHEMA'],
