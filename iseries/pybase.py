@@ -176,6 +176,16 @@ class DB2CursorWrapper:
             return self
         return result
 
+    def executemany(self, query, param_list):
+        if not param_list:
+            # empty param_list means do nothing (execute the query zero times)
+            return
+        query = self.convert_query(query)
+        result = self.cursor.executemany(query, param_list)
+        if result == self.cursor:
+            return self
+        return result
+
     def _replace_placeholders_in_select_clause(self, params, query):
         """Db2 for i does not allow placeholders in select clause; this converts them to literals"""
         if isinstance(params, tuple):
@@ -197,16 +207,6 @@ class DB2CursorWrapper:
             tmp.append(str(t))
         query = ''.join(tmp)
         return query, params
-
-    def executemany(self, query, param_list):
-        if not param_list:
-            # empty param_list means do nothing (execute the query zero times)
-            return
-        query = self.convert_query(query)
-        result = self.cursor.executemany(query, param_list)
-        if result == self.cursor:
-            return self
-        return result
 
     def convert_query(self, query):
         """
