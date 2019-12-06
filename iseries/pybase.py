@@ -49,6 +49,8 @@ NotSupportedError = Database.NotSupportedError
 
 
 FORMAT_QMARK_REGEX = re.compile(r'(?<!%)%s')
+SQLCODE_0530_REGEX = re.compile("^(\[.+\] *){4}SQL0530.*")
+SQLCODE_0910_REGEX = re.compile("^(\[.+\] *){4}SQL0910.*")
 
 
 class DatabaseWrapper:
@@ -171,7 +173,22 @@ class DB2CursorWrapper:
         query = self.convert_query(query)
         query, params = self._replace_placeholders_in_select_clause(params, query)
         print(query, params)
-        result = self.cursor.execute(query, params)
+        try:
+            result = self.cursor.execute(query, params)
+        except Database.Error as e:
+            # iaccess seems to be sending incorrect sqlstate for some errors
+            # reraise "referential constraint violation" errors as IntegrityError
+            if e.args[0] == 'HY000' and SQLCODE_0530_REGEX.match(e.args[1]):
+                raise utils.IntegrityError(*e.args)
+            elif e.args[0] == 'HY000' and SQLCODE_0910_REGEX.match(e.args[1]):
+                # file in use error (likely in the same transaction)
+                if query.startswith('ALTER TABLE') and 'RESTART WITH' in query:
+                    raise utils.ProgrammingError(
+                        *e.args,
+                        "Db2 for iSeries cannot reset a table's primary key sequence during same "
+                        "transaction as insert/update on that table"
+                    )
+            raise
         if result == self.cursor:
             return self
         return result
@@ -181,7 +198,22 @@ class DB2CursorWrapper:
             # empty param_list means do nothing (execute the query zero times)
             return
         query = self.convert_query(query)
-        result = self.cursor.executemany(query, param_list)
+        try:
+            result = self.cursor.executemany(query, param_list)
+        except Database.Error as e:
+            # iaccess seems to be sending incorrect sqlstate for some errors
+            # reraise "referential constraint violation" errors as IntegrityError
+            if e.args[0] == 'HY000' and SQLCODE_0530_REGEX.match(e.args[1]):
+                raise utils.IntegrityError(*e.args)
+            elif e.args[0] == 'HY000' and SQLCODE_0910_REGEX.match(e.args[1]):
+                # file in use error (likely in the same transaction)
+                if query.startswith('ALTER TABLE') and 'RESTART WITH' in query:
+                    raise utils.ProgrammingError(
+                        *e.args,
+                        "Db2 for iSeries cannot reset a table's primary key sequence during same "
+                        "transaction as insert/update on that table"
+                    )
+            raise
         if result == self.cursor:
             return self
         return result

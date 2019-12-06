@@ -115,7 +115,8 @@ class DatabaseWrapper(BaseDatabaseWrapper):
     This is the base class for DB2 backend support for Django.
     """
     data_types = {}
-    vendor = 'DB2'
+    vendor = 'db2iseries'
+    display_name = 'Db2 for i (pyodbc)'
     operators = {
         "exact": "= %s",
         "iexact": "LIKE UPPER(%s) ESCAPE '\\'",
