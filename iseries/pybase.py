@@ -266,7 +266,7 @@ class DB2CursorWrapper:
 
     @property
     def last_identity_val(self):
-        result = self.execute('select IDENTITY_VAL_LOCAL() as identity from sysibm.sysdummy1');
+        result = self.execute('SELECT IDENTITY_VAL_LOCAL() AS IDENTITY FROM SYSIBM.SYSDUMMY1');
         row = result.fetchone()
         return row[0]
 
