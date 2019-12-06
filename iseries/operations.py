@@ -217,7 +217,8 @@ class DatabaseOperations(BaseDatabaseOperations):
 
     # Function to return value of auto-generated field of last executed insert query. 
     def last_insert_id(self, cursor, table_name, pk_name):
-        return cursor.last_identity_val
+        result = cursor.execute('SELECT IDENTITY_VAL_LOCAL() AS IDENTITY FROM SYSIBM.SYSDUMMY1')
+        return result.fetchone()[0]
 
     # In case of WHERE clause, if the search is required to be case insensitive then converting 
     # left hand side field to upper.
@@ -417,4 +418,8 @@ class DatabaseOperations(BaseDatabaseOperations):
             raise utils.DatabaseError("Nowait Select for update not supported ")
         else:
             return 'WITH RS USE AND KEEP UPDATE LOCKS'
+
+    def fetch_returned_insert_id(self, cursor):
+        result = cursor.execute('SELECT IDENTITY_VAL_LOCAL() AS IDENTITY FROM SYSIBM.SYSDUMMY1')
+        return result.fetchone()[0]
 
