@@ -139,7 +139,7 @@ class DatabaseOperations(BaseDatabaseOperations):
 
     def _get_utcoffset(self, tzname):
         if pytz is None and tzname is not None:
-            NotSupportedError("Not supported without pytz")
+            utils.NotSupportedError("Not supported without pytz")
         else:
             hr = 0
             min = 0
@@ -209,22 +209,9 @@ class DatabaseOperations(BaseDatabaseOperations):
             sql = sql % (field_name, 4, '-01-01-00.00.00.000000')
         return sql, []
 
-    if (djangoVersion[0:2] >= (1, 8)):
-        def date_interval_sql(self, timedelta):
-            return " %d days + %d seconds + %d microseconds" % (
-                timedelta.days, timedelta.seconds, timedelta.microseconds), []
-
-    else:
-        def date_interval_sql(self, sql, connector, timedelta):
-            date_interval_token = []
-            date_interval_token.append(sql)
-            date_interval_token.append(str(timedelta.days) + " DAYS")
-            if timedelta.seconds > 0:
-                date_interval_token.append(str(timedelta.seconds) + " SECONDS")
-            if timedelta.microseconds > 0:
-                date_interval_token.append(str(timedelta.microseconds) + " MICROSECONDS")
-            sql = "( %s )" % connector.join(date_interval_token)
-            return sql
+    def date_interval_sql(self, timedelta):
+        return " %d days + %d seconds + %d microseconds" % (
+            timedelta.days, timedelta.seconds, timedelta.microseconds)
 
     # As casting is not required, so nothing is required to do in this function.
     def datetime_cast_sql(self):

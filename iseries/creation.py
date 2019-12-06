@@ -16,16 +16,9 @@
 # | Authors: Ambrish Bhargava, Tarun Pasrija, Rahul Priyadarshi              |
 # +--------------------------------------------------------------------------+
 
-import sys
-
-from django import VERSION as djangoVersion
-from django.conf import settings
 from django.core.exceptions import ImproperlyConfigured
-from django.core.management import call_command
 from django.db.backends.base.creation import BaseDatabaseCreation
 from django.db.backends.utils import truncate_name
-
-from . import Database
 
 TEST_DBNAME_PREFIX = 'test_'
 
@@ -140,36 +133,6 @@ class DatabaseCreation(BaseDatabaseCreation):
 
     def _destroy_test_db(self, test_database_name, verbosity):
         raise ImproperlyConfigured('pyodbc iseries driver does not support database destruction (use --keepdb)')
-
-    # As DB2 does not allow to insert NULL value in UNIQUE col, hence modifing model.
-    def sql_create_model(self, model, style, known_models=set()):
-        if getattr(self.connection.connection, dbms_name) != 'DB2':
-            model._meta.unique_together_index = []
-            temp_changed_uvalues = []
-            temp_unique_together = model._meta.unique_together
-            for i in range(len(model._meta.local_fields)):
-                model._meta.local_fields[i].unique_index = False
-                if model._meta.local_fields[i]._unique and model._meta.local_fields[i].null:
-                    model._meta.local_fields[i].unique_index = True
-                    model._meta.local_fields[i]._unique = False
-                    temp_changed_uvalues.append(i)
-
-                if len(model._meta.unique_together) != 0:
-                    for unique_together in model._meta.unique_together:
-                        if model._meta.local_fields[i].name in unique_together:
-                            if model._meta.local_fields[i].null:
-                                unique_list = list(model._meta.unique_together)
-                                unique_list.remove(unique_together)
-                                model._meta.unique_together = tuple(unique_list)
-                                model._meta.unique_together_index.append(unique_together)
-            sql, references = super(DatabaseCreation, self).sql_create_model(model, style, known_models)
-
-            for i in temp_changed_uvalues:
-                model._meta.local_fields[i]._unique = True
-            model._meta.unique_together = temp_unique_together
-            return sql, references
-        else:
-            return super(DatabaseCreation, self).sql_create_model(model, style, known_models)
 
     # Private method to clean up database.
     def __clean_up(self, cursor):

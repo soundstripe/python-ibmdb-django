@@ -20,12 +20,7 @@ import sys
 
 from django.db.models.sql import compiler
 
-if sys.version_info >= (3,):
-    try:
-        from itertools import zip_longest
-    except ImportError:
-        from itertools import izip_longest as zip_longest
-# For checking django's version
+from itertools import zip_longest
 
 
 class SQLCompiler(compiler.SQLCompiler):

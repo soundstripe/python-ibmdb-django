@@ -20,7 +20,6 @@
 DB2 database backend for Django.
 Requires: ibm_db_dbi (http://pypi.python.org/pypi/ibm_db) for python
 """
-import string
 
 from django.core.exceptions import ImproperlyConfigured
 from django.db import utils
@@ -36,7 +35,6 @@ from iseries.introspection import DatabaseIntrospection
 from iseries.operations import DatabaseOperations
 from iseries.schemaEditor import DB2SchemaEditor
 from . import Database
-
 
 dbms_name = 'dbname'
 
