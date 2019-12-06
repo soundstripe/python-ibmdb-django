@@ -18,6 +18,7 @@
 
 import copy
 import datetime
+import uuid
 
 try:
     from django.db.backends.schema import BaseDatabaseSchemaEditor
@@ -62,12 +63,6 @@ class DB2SchemaEditor(BaseDatabaseSchemaEditor):
             if (field.default is not None) and field.has_default():
                 value = field.get_default()
                 value = self.prepare_default(value)
-                if isinstance(field, models.BinaryField):
-                    if (value == "''"):
-                        value = 'EMPTY_BLOB()'
-                    else:
-                        value = 'blob( %s' % value + ')'
-
                 sql += " DEFAULT %s" % value
             else:
                 field.default = None
@@ -690,7 +685,12 @@ class DB2SchemaEditor(BaseDatabaseSchemaEditor):
 
     def quote_value(self, value):
         if isinstance(value, (datetime.datetime, datetime.date, datetime.time, str)):
-            return f"'{value}'"
-        if isinstance(value, bool):
+            escape_quotes = lambda s: f'{s}'.replace("'", "''")
+            return f"'{escape_quotes(value)}'"
+        elif isinstance(value, bool):
             return '1' if value else '0'
+        elif isinstance(value, uuid.UUID):
+            return f"'{value}'"
+        elif isinstance(value, bytes):
+            return f"X'{value.hex()}'"
         return str(value)
