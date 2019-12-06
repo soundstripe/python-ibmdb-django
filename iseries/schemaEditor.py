@@ -53,31 +53,6 @@ class DB2SchemaEditor(BaseDatabaseSchemaEditor):
         self._reorg_tables()
         return "alter table %(table)s add constraint %(name)s primary key (%(columns)s)"
 
-    # return column definition DDL
-    def column_sql(self, model, field, include_default=True):
-        db_parameter = field.db_parameters(connection=self.connection)
-        sql = db_parameter['type']
-        if sql is None:
-            return None, None
-        if include_default:
-            if (field.default is not None) and field.has_default():
-                value = field.get_default()
-                value = self.prepare_default(value)
-                sql += " DEFAULT %s" % value
-            else:
-                field.default = None
-        if not field.null:
-            sql += " NOT NULL"
-        if field.primary_key:
-            sql += " PRIMARY KEY"
-        elif field.unique:
-            sql += " UNIQUE"
-        tablespace = field.db_tablespace or model._meta.db_tablespace
-        if tablespace and field.unique:
-            sql += " %s" % self.connection.ops.tablespace_sql(tablespace, inline=True)
-
-        return sql, []
-
     def prepare_default(self, value):
         return self.quote_value(value)
 
@@ -692,5 +667,8 @@ class DB2SchemaEditor(BaseDatabaseSchemaEditor):
         elif isinstance(value, uuid.UUID):
             return f"'{value}'"
         elif isinstance(value, bytes):
-            return f"X'{value.hex()}'"
+            return f"BLOB(X'{value.hex()}')"
+        elif isinstance(value, datetime.timedelta):
+            # time intervals will be stored as double number of seconds
+            return f"{value / datetime.timedelta(seconds=1)}"
         return str(value)

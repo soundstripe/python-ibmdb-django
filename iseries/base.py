@@ -94,6 +94,7 @@ class DatabaseFeatures(BaseDatabaseFeatures):
     can_rollback_ddl = True
     has_case_insensitive_like = False
     bare_select_suffix = ' FROM SYSIBM.SYSDUMMY1'
+    implied_column_null = True
     supports_select_for_update_with_limit = False
     ignores_table_name_case = True
     supports_over_clause = True
