@@ -401,19 +401,12 @@ class DatabaseOperations(BaseDatabaseOperations):
         if value is None:
             return None
 
-        if (djangoVersion[0:2] <= (1, 3)):
-            # DB2 doesn't support time zone aware datetime
-            if (value.tzinfo is not None):
-                raise ValueError("Timezone aware datetime not supported")
+        if is_aware(value):
+            if settings.USE_TZ:
+                value = value.astimezone(utc).replace(tzinfo=None)
             else:
-                return value
-        else:
-            if is_aware(value):
-                if settings.USE_TZ:
-                    value = value.astimezone(utc).replace(tzinfo=None)
-                else:
-                    raise ValueError("Timezone aware datetime not supported")
-            return unicode(value)
+                raise ValueError("Timezone aware datetime not supported")
+        return str(value)
 
     def value_to_db_time(self, value):
         if value is None:

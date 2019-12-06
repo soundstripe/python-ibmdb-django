@@ -82,7 +82,7 @@ class DatabaseFeatures(BaseDatabaseFeatures):
 
     supports_long_model_names = False
     can_distinct_on_fields = False
-    supports_paramstyle_pyformat = True
+    supports_paramstyle_pyformat = False
     supports_sequence_reset = True
     # DB2 doesn't take default values as parameter
     requires_literal_defaults = True
@@ -138,6 +138,8 @@ class DatabaseWrapper(BaseDatabaseWrapper):
     introspection_class = DatabaseIntrospection
     validation_class = DatabaseValidation
     ops_class = DatabaseOperations
+
+    error_codes_remap_to_database_error = ['28000']
 
     # Constructor of DB2 backend support. Initializing all other classes.
     def __init__(self, *args):
@@ -265,5 +267,15 @@ class DatabaseWrapper(BaseDatabaseWrapper):
         return DB2SchemaEditor(self, *args, **kwargs)
 
     def disable_constraint_checking(self):
-        """No way to disable constraints for a single transaction on Db2 for iSeries"""
-        return False
+        raise utils.NotSupportedError(
+            "Db2 for iSeries currently supports no method of disabling constraints on a per-session basis."
+        )
+
+    def connect(self):
+        try:
+            super().connect()
+        except Database.InterfaceError as e:
+            """Django expects errors such as invalid password to be DatabaseError"""
+            if e.args[0] in self.error_codes_remap_to_database_error:
+                raise utils.DatabaseError(*e.args)
+            raise
