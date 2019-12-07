@@ -154,7 +154,7 @@ class DB2CursorWrapper:
         return self.fetchone()[0]
 
     def set_current_schema(self, schema):
-        self.execute(f'set CURRENT_SCHEMA = {schema}')
+        self.execute(f'SET CURRENT_SCHEMA = {schema}')
 
     def close(self):
         """
