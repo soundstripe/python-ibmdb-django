@@ -420,6 +420,7 @@ class DatabaseOperations(BaseDatabaseOperations):
             return 'WITH RS USE AND KEEP UPDATE LOCKS'
 
     def fetch_returned_insert_id(self, cursor):
-        result = cursor.execute('SELECT IDENTITY_VAL_LOCAL() AS IDENTITY FROM SYSIBM.SYSDUMMY1')
-        return result.fetchone()[0]
+        return cursor.fetchone()[0]
 
+    def fetch_returned_insert_ids(self, cursor):
+        return [id_ for (id_, ) in cursor.fetchall()]

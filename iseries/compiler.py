@@ -145,7 +145,11 @@ class SQLCompiler(compiler.SQLCompiler):
 
 
 class SQLInsertCompiler(compiler.SQLInsertCompiler, SQLCompiler):
-    pass
+    def as_sql(self):
+        """Support returning identity val with single query."""
+        (sql, params), *_ = super().as_sql()
+        sql = f'SELECT IDENTITY_VAL_LOCAL() FROM FINAL TABLE ({sql})'
+        return [(sql, params)]
 
 
 class SQLDeleteCompiler(compiler.SQLDeleteCompiler, SQLCompiler):

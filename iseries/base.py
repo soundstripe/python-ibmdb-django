@@ -46,6 +46,8 @@ class DatabaseFeatures(BaseDatabaseFeatures):
     interprets_empty_strings_as_nulls = False
 
     can_use_chunked_reads = True
+    can_return_id_from_insert = True
+    can_return_ids_from_bulk_insert = True
     uses_savepoints = True
     can_release_savepoints = True
 
