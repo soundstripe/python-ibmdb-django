@@ -400,17 +400,10 @@ class DatabaseOperations(BaseDatabaseOperations):
             upper_bound = datetime.date(long(value), 12, 31)
         return [lower_bound, upper_bound]
 
-    def bulk_insert_sql(self, fields, num_values):
-        if sys.version_info.major >= 3:
-            var_param = (int)
-        else:
-            var_param = (int, long)
-        values_sql = "( %s )" % (", ".join(["%s"] * len(fields)))
-        if isinstance(num_values, var_param):
-            bulk_values_sql = "VALUES " + ", ".join([values_sql] * (num_values))
-        else:
-            bulk_values_sql = "VALUES " + ", ".join([values_sql] * len(num_values))
-        return bulk_values_sql
+    def bulk_insert_sql(self, fields, placeholder_rows):
+        placeholder_rows_sql = (", ".join(row) for row in placeholder_rows)
+        values_sql = ", ".join(f'({sql})' for sql in placeholder_rows_sql)
+        return f"VALUES {values_sql}"
 
     def for_update_sql(self, nowait=False, skip_locked=False, of=()):
         # DB2 doesn't support nowait select for update
@@ -424,3 +417,7 @@ class DatabaseOperations(BaseDatabaseOperations):
 
     def fetch_returned_insert_ids(self, cursor):
         return [id_ for (id_, ) in cursor.fetchall()]
+
+    def return_insert_id(self):
+        """empty implementation as we implement returned ids with a cursor and custom Insert compiler"""
+        return None, None

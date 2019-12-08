@@ -24,6 +24,7 @@ import sys
 import warnings
 
 # For checking django's version
+from functools import partial
 from typing import Optional
 
 import sqlparse
@@ -167,32 +168,11 @@ class DB2CursorWrapper:
         if getattr(self, 'connection', False):
             self.cursor.close()
 
-    def execute(self, query, params=None):
-        if params is None:
-            params = tuple()
-        else:
+    def execute(self, query, params=()):
+        if params:
             query = self.convert_query(query)
             query, params = self._replace_placeholders_in_select_clause(params, query)
-
-        try:
-            print(query, params)
-            result = self.cursor.execute(query, params)
-        except Database.Error as e:
-            # iaccess seems to be sending incorrect sqlstate for some errors
-            # reraise "referential constraint violation" errors as IntegrityError
-            if e.args[0] == 'HY000' and SQLCODE_0530_REGEX.match(e.args[1]):
-                raise utils.IntegrityError(*e.args)
-            elif e.args[0] == 'HY000' and SQLCODE_0910_REGEX.match(e.args[1]):
-                # file in use error (likely in the same transaction)
-                if query.startswith('ALTER TABLE') and 'RESTART WITH' in query:
-                    raise utils.ProgrammingError(
-                        *e.args,
-                        "Db2 for iSeries cannot reset a table's primary key sequence during same "
-                        "transaction as insert/update on that table"
-                    )
-            raise
-        if result == self.cursor:
-            return self
+        result = self._wrap_execute(partial(self.cursor.execute, query, params))
         return result
 
     def executemany(self, query, param_list):
@@ -200,22 +180,29 @@ class DB2CursorWrapper:
             # empty param_list means do nothing (execute the query zero times)
             return
         query = self.convert_query(query)
+        result = self._wrap_execute(partial(self.cursor.executemany, query, param_list))
+        return result
+
+    def _wrap_execute(self, execute):
         try:
-            result = self.cursor.executemany(query, param_list)
+            result = execute()
         except Database.Error as e:
             # iaccess seems to be sending incorrect sqlstate for some errors
             # reraise "referential constraint violation" errors as IntegrityError
             if e.args[0] == 'HY000' and SQLCODE_0530_REGEX.match(e.args[1]):
-                raise utils.IntegrityError(*e.args)
+                raise utils.IntegrityError(*e.args, execute.func, *execute.args)
             elif e.args[0] == 'HY000' and SQLCODE_0910_REGEX.match(e.args[1]):
                 # file in use error (likely in the same transaction)
+                query, params, *_ = execute.args
                 if query.startswith('ALTER TABLE') and 'RESTART WITH' in query:
                     raise utils.ProgrammingError(
                         *e.args,
+                        execute.func,
+                        execute.args,
                         "Db2 for iSeries cannot reset a table's primary key sequence during same "
                         "transaction as insert/update on that table"
                     )
-            raise
+            raise type(e)(*e.args, execute.func, execute.args)
         if result == self.cursor:
             return self
         return result
