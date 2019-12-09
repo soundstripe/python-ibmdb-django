@@ -18,10 +18,10 @@
 # +--------------------------------------------------------------------------+
 
 import datetime
+import uuid
 from functools import lru_cache
 
 import pytz
-from django import VERSION as djangoVersion
 from django.conf import settings
 from django.db import utils
 from django.db.backends.base.operations import BaseDatabaseOperations
@@ -36,14 +36,10 @@ dbms_name = 'dbms_name'
 
 class DatabaseOperations(BaseDatabaseOperations):
     def __init__(self, connection):
-        if (djangoVersion[0:2] >= (1, 4)):
-            super(DatabaseOperations, self).__init__(self)
-        else:
-            super(DatabaseOperations, self).__init__()
+        super(DatabaseOperations, self).__init__(self)
         self.connection = connection
 
-    if (djangoVersion[0:2] >= (1, 2)):
-        compiler_module = "iseries.compiler"
+    compiler_module = "iseries.compiler"
 
     def cache_key_culling_sql(self):
         return '''select cache_key 
@@ -181,10 +177,7 @@ class DatabaseOperations(BaseDatabaseOperations):
             sql = sql % (field_name, 7, '-01')
         elif lookup_type.upper() == 'YEAR':
             sql = sql % (field_name, 4, '-01-01')
-        if (djangoVersion[0:2] < (1, 6)):
-            return sql
-        else:
-            return sql
+        return sql
 
     # Truncating the time zone-aware timestamps value on the basic of lookup type
     def datetime_trunc_sql(self, lookup_type, field_name, tzname):
