@@ -17,6 +17,9 @@
 # | Hemlata Bhatt, Vyshakh A                                                 |
 # +--------------------------------------------------------------------------+
 import string
+from functools import lru_cache
+
+from django.utils.functional import cached_property
 
 try:
     from django.db.backends import BaseDatabaseOperations
@@ -437,7 +440,7 @@ class DatabaseOperations(BaseDatabaseOperations):
         """empty implementation as we implement returned ids with a cursor and custom Insert compiler"""
         return None, None
 
-    def _foreign_key_constraints(self, table):
+    def __foreign_key_constraints(self, table):
         foreign_keys_sql = """
         SELECT FK.TABLE_NAME, CST.CONSTRAINT_NAME, FK.COLUMN_NAME, TGT.COLUMN_NAME
             FROM QSYS2.SYSCST CST
@@ -463,6 +466,11 @@ class DatabaseOperations(BaseDatabaseOperations):
         cursor = self.connection.cursor()
         foreign_keys = cursor.execute(foreign_keys_sql, [table.upper()]).fetchall()
         return foreign_keys
+
+    @cached_property
+    def _foreign_key_constraints(self):
+        """cached implementation, modelled after django's oracle backend implementation"""
+        return lru_cache(maxsize=512)(self.__foreign_key_constraints)
 
     def _drop_constraint_sql(self, referencing_table, constraint_name, referencing_col, target_col, target_table):
         t = self.quote_name(referencing_table)
