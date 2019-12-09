@@ -19,6 +19,7 @@
 import string
 from functools import lru_cache
 
+from django.utils import timezone
 from django.utils.functional import cached_property
 
 try:
@@ -145,6 +146,28 @@ class DatabaseOperations(BaseDatabaseOperations):
                 hr = td.seconds / (60 * 60)
                 min = (td.seconds % (60 * 60)) / 60
             return hr, min
+
+    def adapt_timefield_value(self, value):
+        """
+        Transform a time value to an object compatible with what is expected
+        by the backend driver for time columns.
+        """
+        if value is None:
+            return None
+        if timezone.is_aware(value):
+            raise ValueError("Db2 for iSeries backend does not support timezone-aware times.")
+        return value
+
+    def adapt_datetimefield_value(self, value):
+        """
+        Transform a time value to an object compatible with what is expected
+        by the backend driver for time columns.
+        """
+        if value is None:
+            return None
+        if timezone.is_aware(value):
+            raise ValueError("Db2 for iSeries backend does not support timezone-aware times.")
+        return value
 
     # Function to extract time zone-aware day, month or day of week from timestamps   
     def datetime_extract_sql(self, lookup_type, field_name, tzname):
