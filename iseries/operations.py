@@ -410,12 +410,8 @@ class DatabaseOperations(BaseDatabaseOperations):
             return value
 
     def year_lookup_bounds_for_date_field(self, value):
-        if sys.version_info.major >= 3:
-            lower_bound = datetime.date(int(value), 1, 1)
-            upper_bound = datetime.date(int(value), 12, 31)
-        else:
-            lower_bound = datetime.date(long(value), 1, 1)
-            upper_bound = datetime.date(long(value), 12, 31)
+        lower_bound = datetime.date(int(value), 1, 1)
+        upper_bound = datetime.date(int(value), 12, 31)
         return [lower_bound, upper_bound]
 
     def bulk_insert_sql(self, fields, placeholder_rows):
