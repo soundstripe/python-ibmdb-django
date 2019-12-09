@@ -75,8 +75,6 @@ class DatabaseCreation(BaseDatabaseCreation):
         output = []
         qn = self.connection.ops.quote_name
         max_name_length = self.connection.ops.max_name_length()
-        # ignore tablespace information
-        tablespace_sql = ''
         i = 0
         if len(model._meta.unique_together_index) != 0:
             for unique_together_index in model._meta.unique_together_index:
@@ -95,8 +93,7 @@ class DatabaseCreation(BaseDatabaseCreation):
                                style.SQL_TABLE(qn('db2_%s_%s' % (model._meta.db_table, i))) + ' ' + \
                                style.SQL_KEYWORD('ON') + ' ' + \
                                style.SQL_TABLE(qn(model._meta.db_table)) + ' ' + \
-                               '( %s )' % ", ".join(column_list) + ' ' + \
-                               '%s;' % tablespace_sql])
+                               '( %s )' % ", ".join(column_list)])
             model._meta.unique_together_index = []
 
         if f.unique_index:
@@ -110,8 +107,7 @@ class DatabaseCreation(BaseDatabaseCreation):
                            style.SQL_KEYWORD('ON') + ' ' +
                            style.SQL_TABLE(qn(model._meta.db_table)) + ' ' +
                            "(%s, %s )" % (style.SQL_FIELD(qn(f.column)), style.SQL_FIELD(
-                qn(truncate_name((self.psudo_column_prefix + f.column), max_name_length)))) +
-                           "%s;" % tablespace_sql])
+                qn(truncate_name((self.psudo_column_prefix + f.column), max_name_length))))])
             return output
 
         if f.db_index and not f.unique:
@@ -120,8 +116,7 @@ class DatabaseCreation(BaseDatabaseCreation):
                            style.SQL_TABLE(qn('%s_%s' % (model._meta.db_table, f.column))) + ' ' +
                            style.SQL_KEYWORD('ON') + ' ' +
                            style.SQL_TABLE(qn(model._meta.db_table)) + ' ' +
-                           "(%s)" % style.SQL_FIELD(qn(f.column)) +
-                           "%s;" % tablespace_sql])
+                           "(%s)" % style.SQL_FIELD(qn(f.column))])
 
         return output
 

@@ -70,8 +70,6 @@ class DatabaseFeatures(BaseDatabaseFeatures):
     # transaction is supported by DB2
     supports_transactions = True
 
-    supports_tablespaces = True
-
     uppercases_column_names = True
     allows_auto_pk_0 = True
     can_defer_constraint_checks = False

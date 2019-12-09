@@ -378,16 +378,6 @@ class DatabaseOperations(BaseDatabaseOperations):
                         style.SQL_KEYWORD("RESTART WITH %s" % (1)))
         return sqls
 
-    def tablespace_sql(self, tablespace, inline=False):
-        # inline is used for column indexes defined in-line with column definition, like:
-        #   CREATE TABLE "TABLE1" ("ID_OTHER" VARCHAR(20) NOT NULL UNIQUE) IN "TABLESPACE1";
-        # couldn't find support for this in create table 
-        #   (http://publib.boulder.ibm.com/infocenter/db2luw/v9/topic/com.ibm.db2.udb.admin.doc/doc/r0000927.htm)
-        if inline:
-            sql = ""
-        else:
-            sql = "IN %s" % self.quote_name(tablespace)
-        return sql
 
     def value_to_db_datetime(self, value):
         if value is None:
