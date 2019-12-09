@@ -40,8 +40,8 @@ dbms_name = 'dbname'
 
 
 class DatabaseFeatures(BaseDatabaseFeatures):
-    allows_group_by_pk = True
-    allows_group_by_selected_pks = True
+    allows_group_by_pk = False
+    allows_group_by_selected_pks = False
 
     interprets_empty_strings_as_nulls = False
 
