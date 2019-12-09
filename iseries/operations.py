@@ -16,6 +16,7 @@
 # | Authors: Ambrish Bhargava, Tarun Pasrija, Rahul Priyadarshi,             |
 # | Hemlata Bhatt, Vyshakh A                                                 |
 # +--------------------------------------------------------------------------+
+import string
 
 try:
     from django.db.backends import BaseDatabaseOperations
@@ -287,11 +288,23 @@ class DatabaseOperations(BaseDatabaseOperations):
     # sequences.
     def sql_flush(self, style, tables, sequences, allow_cascade=False):
         if tables:
-            sqls = [' '.join([style.SQL_KEYWORD("DELETE"),
-                              style.SQL_KEYWORD("FROM"),
-                              style.SQL_TABLE("%s" % self.quote_name(table)),
-                              style.SQL_KEYWORD("WHERE"),
-                              "1 = 1"]) for table in tables]
+            truncated_tables = set(t.upper() for t in tables)
+            constraints = set()
+            for table in tables:
+                for foreign_table, constraint, foreign_pk_col, foreign_tgt_col in self._foreign_key_constraints(table):
+                    if allow_cascade:
+                        truncated_tables.add(foreign_table)
+                    constraints.add((foreign_table, constraint, foreign_pk_col, foreign_tgt_col, table))
+
+            sqls = [self._drop_constraint_sql(*constraint) for constraint in constraints]
+            sqls.append('COMMIT')
+
+            sqls.extend(' '.join([style.SQL_KEYWORD("DELETE"),
+                                     style.SQL_KEYWORD("FROM"),
+                                     style.SQL_TABLE("%s" % self.quote_name(table)),
+                                     style.SQL_KEYWORD("WHERE"),
+                                     "1 = 1"]) for table in tables)
+            sqls.append('COMMIT')
 
             sqls.extend(' '.join([style.SQL_KEYWORD("ALTER TABLE"),
                                   style.SQL_TABLE("%s" % self.quote_name(sequence['table'])),
@@ -300,6 +313,8 @@ class DatabaseOperations(BaseDatabaseOperations):
                                   style.SQL_KEYWORD("RESTART WITH 1")])
                         for sequence in sequences
                         if sequence['column'] is not None)
+
+            sqls.extend(self._add_constraint_sql(*constraint) for constraint in constraints)
             return sqls
         else:
             return []
@@ -421,3 +436,45 @@ class DatabaseOperations(BaseDatabaseOperations):
     def return_insert_id(self):
         """empty implementation as we implement returned ids with a cursor and custom Insert compiler"""
         return None, None
+
+    def _foreign_key_constraints(self, table):
+        foreign_keys_sql = """
+        SELECT FK.TABLE_NAME, CST.CONSTRAINT_NAME, FK.COLUMN_NAME, TGT.COLUMN_NAME
+            FROM QSYS2.SYSCST CST
+                JOIN QSYS2.SYSKEYCST FK 
+                  ON CST.CONSTRAINT_SCHEMA = FK.CONSTRAINT_SCHEMA 
+                 AND CST.CONSTRAINT_NAME = FK.CONSTRAINT_NAME
+                JOIN QSYS2.SYSREFCST REF 
+                  ON CST.CONSTRAINT_SCHEMA = REF.CONSTRAINT_SCHEMA 
+                 AND CST.CONSTRAINT_NAME = REF.CONSTRAINT_NAME
+                JOIN QSYS2.SYSKEYCST PK 
+                  ON REF.UNIQUE_CONSTRAINT_SCHEMA = PK.CONSTRAINT_SCHEMA 
+                 AND REF.UNIQUE_CONSTRAINT_NAME = PK.CONSTRAINT_NAME
+                JOIN QSYS2.SYSCOLUMNS TGT
+                  ON PK.TABLE_SCHEMA = TGT.TABLE_SCHEMA
+                 AND PK.TABLE_NAME = TGT.TABLE_NAME
+                 AND TGT.ORDINAL_POSITION = FK.COLUMN_POSITION
+            WHERE CST.CONSTRAINT_TYPE = 'FOREIGN KEY'
+              AND FK.ORDINAL_POSITION = PK.ORDINAL_POSITION
+              AND PK.TABLE_SCHEMA = CURRENT_SCHEMA
+              AND PK.TABLE_NAME = ?
+              AND ENABLED = 'YES'
+          """.strip()
+        cursor = self.connection.cursor()
+        foreign_keys = cursor.execute(foreign_keys_sql, [table.upper()]).fetchall()
+        return foreign_keys
+
+    def _drop_constraint_sql(self, referencing_table, constraint_name, referencing_col, target_col, target_table):
+        t = self.quote_name(referencing_table)
+        c = self.quote_name(constraint_name)
+        drop_constraint_sql = f"ALTER TABLE {t} DROP CONSTRAINT {c}"
+        return drop_constraint_sql
+
+    def _add_constraint_sql(self, referencing_table, constraint_name, referencing_col, target_col, target_table):
+        ref_t = self.quote_name(referencing_table)
+        cst = self.quote_name(constraint_name)
+        col = self.quote_name(referencing_col)
+        target_t = self.quote_name(target_table)
+        add_constraint_sql = f"ALTER TABLE {ref_t} ADD CONSTRAINT {cst} " \
+                             f"FOREIGN KEY ({col}) REFERENCES {target_t} ({target_col})"
+        return add_constraint_sql
