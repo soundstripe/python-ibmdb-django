@@ -16,33 +16,20 @@
 # | Authors: Ambrish Bhargava, Tarun Pasrija, Rahul Priyadarshi,             |
 # | Hemlata Bhatt, Vyshakh A                                                 |
 # +--------------------------------------------------------------------------+
-import string
-from functools import lru_cache
-
-from django.utils import timezone
-from django.utils.functional import cached_property
-
-try:
-    from django.db.backends import BaseDatabaseOperations
-except ImportError:
-    from django.db.backends.base.operations import BaseDatabaseOperations
 
 import datetime
-import sys
+from functools import lru_cache
 
+import pytz
 from django import VERSION as djangoVersion
+from django.conf import settings
+from django.db import utils
+from django.db.backends.base.operations import BaseDatabaseOperations
+from django.utils import timezone
+from django.utils.functional import cached_property
+from django.utils.timezone import is_aware, utc
 
 from iseries import query
-
-try:
-    import pytz
-except ImportError:
-    pytz = None
-
-from django.db import utils
-
-from django.utils.timezone import is_aware, utc
-from django.conf import settings
 
 dbms_name = 'dbms_name'
 
