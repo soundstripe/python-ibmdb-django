@@ -81,6 +81,9 @@ class DatabaseOperations(BaseDatabaseOperations):
         if connector not in '+-':
             raise utils.DatabaseError('Invalid connector for timedelta: %s.' % connector)
         lhs, rhs = sub_expressions
+        if connector == '-':
+            # expression starts as "x DAYS + y SECONDS + z MICROSECONDS"
+            rhs = rhs.replace('+', '-')  # convert the delta additions to subtractions
         return f'CAST({lhs} AS TIMESTAMP) {connector} {rhs}'
 
     def combine_expression(self, connector, sub_expressions):
