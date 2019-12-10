@@ -78,10 +78,10 @@ class DatabaseOperations(BaseDatabaseOperations):
         return converters
 
     def combine_duration_expression(self, connector, sub_expressions):
-        if connector in '+-':
-            lhs, rhs = sub_expressions
-            return f'TIMESTAMP({lhs}) {connector} {rhs}'
-        return self.combine_expression(connector, sub_expressions)
+        if connector not in '+-':
+            raise utils.DatabaseError('Invalid connector for timedelta: %s.' % connector)
+        lhs, rhs = sub_expressions
+        return f'TIMESTAMP({lhs}) {connector} {rhs}'
 
     def combine_expression(self, connector, sub_expressions):
         lhs, rhs = sub_expressions
@@ -117,7 +117,7 @@ class DatabaseOperations(BaseDatabaseOperations):
         return value
 
     def format_for_duration_arithmetic(self, sql):
-        return ' %s MICROSECONDS' % sql
+        return ' COALESCE(%s, 0) MICROSECONDS' % sql
 
     def datetime_cast_date_sql(self, field_name, tzname):
         field_name = self._convert_field_to_tz(field_name, tzname)
