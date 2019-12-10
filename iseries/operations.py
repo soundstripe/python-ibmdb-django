@@ -168,6 +168,11 @@ class DatabaseOperations(BaseDatabaseOperations):
         """
         if value is None:
             return None
+
+        # Expression values are adapted by the database.
+        if hasattr(value, 'resolve_expression'):
+            return value
+
         if timezone.is_aware(value):
             raise ValueError("Db2 for iSeries backend does not support timezone-aware times.")
         return value
