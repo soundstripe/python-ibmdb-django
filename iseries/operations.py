@@ -86,9 +86,9 @@ class DatabaseOperations(BaseDatabaseOperations):
         elif operator == '|':
             return f'BITOR({lhs}, {rhs})'
         elif operator == '<<':
-            return f'({lhs} * POWER(2, {rhs}))'
+            return f'({lhs} * POWER(2, CAST({rhs} AS INTEGER)))'
         elif operator == '>>':
-            return f'FLOOR({lhs} / POWER(2, {rhs}))'
+            return f'FLOOR({lhs} / POWER(2, CAST({rhs} AS INTEGER)))'
         elif operator == '^':
             return f'POWER({lhs}, {rhs})'
         elif operator == '-':
