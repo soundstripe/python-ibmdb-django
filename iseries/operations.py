@@ -157,8 +157,14 @@ class DatabaseOperations(BaseDatabaseOperations):
         """
         if value is None:
             return None
+
+        # Expression values are adapted by the database.
+        if hasattr(value, 'resolve_expression'):
+            return value
+
         if timezone.is_aware(value):
             raise ValueError("Db2 for iSeries backend does not support timezone-aware times.")
+
         return value
 
     def adapt_datetimefield_value(self, value):
@@ -174,7 +180,10 @@ class DatabaseOperations(BaseDatabaseOperations):
             return value
 
         if timezone.is_aware(value):
-            raise ValueError("Db2 for iSeries backend does not support timezone-aware times.")
+            if settings.USE_TZ:
+                value = timezone.make_naive(value, self.connection.timezone)
+            else:
+                raise ValueError("Db2 for iSeries backend does not support timezone-aware times when USE_TZ is False")
         return value
 
     # Function to extract time zone-aware day, month or day of week from timestamps   
