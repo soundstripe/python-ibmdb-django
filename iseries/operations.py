@@ -77,6 +77,12 @@ class DatabaseOperations(BaseDatabaseOperations):
             converters.append(self.convert_uuidfield_value)
         return converters
 
+    def combine_duration_expression(self, connector, sub_expressions):
+        if connector in '+-':
+            lhs, rhs = sub_expressions
+            return f'TIMESTAMP({lhs}) {connector} {rhs}'
+        return self.combine_expression(connector, sub_expressions)
+
     def combine_expression(self, connector, sub_expressions):
         lhs, rhs = sub_expressions
         if connector == '%%':
@@ -112,6 +118,10 @@ class DatabaseOperations(BaseDatabaseOperations):
 
     def format_for_duration_arithmetic(self, sql):
         return ' %s MICROSECONDS' % sql
+
+    def datetime_cast_date_sql(self, field_name, tzname):
+        field_name = self._convert_field_to_tz(field_name, tzname)
+        return "DATE(%s)" % field_name
 
     # Function to extract day, month or year from the date.
     # Reference: http://publib.boulder.ibm.com/infocenter/db2luw/v9r5/topic/com.ibm.db2.luw.sql.ref.doc/doc/r0023457.html
