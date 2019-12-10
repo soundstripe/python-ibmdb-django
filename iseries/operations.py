@@ -77,7 +77,7 @@ class DatabaseOperations(BaseDatabaseOperations):
             converters.append(self.convert_uuidfield_value)
         return converters
 
-    def combine_expression(self, operator, sub_expressions):
+    def combine_expression(self, connector, sub_expressions):
         lhs, rhs = sub_expressions
         if connector == '%%':
             return f'MOD({lhs}, {rhs})'
@@ -91,14 +91,15 @@ class DatabaseOperations(BaseDatabaseOperations):
             return f'FLOOR({lhs} / POWER(2, CAST({rhs} AS INTEGER)))'
         elif connector == '^':
             return f'POWER({lhs}, {rhs})'
-        elif connector == '-':
-            strr = str(sub_expressions[1])
-            sub_expressions[1] = strr.replace('+', '-')
-            return super(DatabaseOperations, self).combine_expression(connector, sub_expressions)
-        else:
-            strr = str(sub_expressions[1])
-            sub_expressions[1] = strr.replace('+', '-')
-            return super(DatabaseOperations, self).combine_expression(connector, sub_expressions)
+        return super().combine_expression(connector, sub_expressions)
+        # elif connector == '-':
+        #     strr = str(sub_expressions[1])
+        #     sub_expressions[1] = strr.replace('+', '-')
+        #     return super(DatabaseOperations, self).combine_expression(connector, sub_expressions)
+        # else:
+        #     strr = str(sub_expressions[1])
+        #     sub_expressions[1] = strr.replace('+', '-')
+        #     return super(DatabaseOperations, self).combine_expression(connector, sub_expressions)
 
     def convert_uuidfield_value(self, value, expression, connection):
         if value is not None:
