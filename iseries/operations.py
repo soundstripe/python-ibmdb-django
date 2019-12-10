@@ -80,7 +80,9 @@ class DatabaseOperations(BaseDatabaseOperations):
     def combine_expression(self, connector, sub_expressions):
         lhs, rhs = sub_expressions
         if connector == '%%':
-            return f'MOD({lhs}, {rhs})'
+            # Db2 for iSeries requires explicit cast for parameters to MOD. INTEGER is the only cast that makes sense
+            # (though this may cause failures for BIGINT types down the road)
+            return f'MOD(CAST({lhs} AS INTEGER), CAST({rhs} AS INTEGER))'
         elif connector == '&':
             return f'BITAND({lhs}, {rhs})'
         elif connector == '|':
