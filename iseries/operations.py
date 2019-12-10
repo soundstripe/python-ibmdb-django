@@ -78,14 +78,19 @@ class DatabaseOperations(BaseDatabaseOperations):
         return converters
 
     def combine_expression(self, operator, sub_expressions):
+        lhs, rhs = sub_expressions
         if operator == '%%':
-            return 'MOD(%s, %s)' % (sub_expressions[0], sub_expressions[1])
+            return f'MOD({lhs}, {rhs})'
         elif operator == '&':
-            return 'BITAND(%s, %s)' % (sub_expressions[0], sub_expressions[1])
+            return f'BITAND({lhs}, {rhs})'
         elif operator == '|':
-            return 'BITOR(%s, %s)' % (sub_expressions[0], sub_expressions[1])
+            return f'BITOR({lhs}, {rhs})'
+        elif operator == '<<':
+            return f'({lhs} * POWER(2, {rhs}))'
+        elif operator == '>>':
+            return f'FLOOR({lhs} / POWER(2, {rhs}))'
         elif operator == '^':
-            return 'POWER(%s, %s)' % (sub_expressions[0], sub_expressions[1])
+            return f'POWER({lhs}, {rhs})'
         elif operator == '-':
             strr = str(sub_expressions[1])
             sub_expressions[1] = strr.replace('+', '-')
