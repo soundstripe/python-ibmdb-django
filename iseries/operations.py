@@ -105,14 +105,6 @@ class DatabaseOperations(BaseDatabaseOperations):
             # correct values, though it may sacrifice a small amount of speed
             return f'POWER(CAST({lhs} AS FLOAT), CAST({rhs} AS FLOAT))'
         return super().combine_expression(connector, sub_expressions)
-        # elif connector == '-':
-        #     strr = str(sub_expressions[1])
-        #     sub_expressions[1] = strr.replace('+', '-')
-        #     return super(DatabaseOperations, self).combine_expression(connector, sub_expressions)
-        # else:
-        #     strr = str(sub_expressions[1])
-        #     sub_expressions[1] = strr.replace('+', '-')
-        #     return super(DatabaseOperations, self).combine_expression(connector, sub_expressions)
 
     def convert_uuidfield_value(self, value, expression, connection):
         if value is not None:
