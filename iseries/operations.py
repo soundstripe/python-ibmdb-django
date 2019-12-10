@@ -79,26 +79,26 @@ class DatabaseOperations(BaseDatabaseOperations):
 
     def combine_expression(self, operator, sub_expressions):
         lhs, rhs = sub_expressions
-        if operator == '%%':
+        if connector == '%%':
             return f'MOD({lhs}, {rhs})'
-        elif operator == '&':
+        elif connector == '&':
             return f'BITAND({lhs}, {rhs})'
-        elif operator == '|':
+        elif connector == '|':
             return f'BITOR({lhs}, {rhs})'
-        elif operator == '<<':
+        elif connector == '<<':
             return f'({lhs} * POWER(2, CAST({rhs} AS INTEGER)))'
-        elif operator == '>>':
+        elif connector == '>>':
             return f'FLOOR({lhs} / POWER(2, CAST({rhs} AS INTEGER)))'
-        elif operator == '^':
+        elif connector == '^':
             return f'POWER({lhs}, {rhs})'
-        elif operator == '-':
+        elif connector == '-':
             strr = str(sub_expressions[1])
             sub_expressions[1] = strr.replace('+', '-')
-            return super(DatabaseOperations, self).combine_expression(operator, sub_expressions)
+            return super(DatabaseOperations, self).combine_expression(connector, sub_expressions)
         else:
             strr = str(sub_expressions[1])
             sub_expressions[1] = strr.replace('+', '-')
-            return super(DatabaseOperations, self).combine_expression(operator, sub_expressions)
+            return super(DatabaseOperations, self).combine_expression(connector, sub_expressions)
 
     def convert_uuidfield_value(self, value, expression, connection):
         if value is not None:
