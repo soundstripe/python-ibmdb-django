@@ -90,7 +90,9 @@ class DatabaseOperations(BaseDatabaseOperations):
         elif connector == '>>':
             return f'FLOOR({lhs} / POWER(2, CAST({rhs} AS INTEGER)))'
         elif connector == '^':
-            return f'POWER({lhs}, {rhs})'
+            # Db2 for iSeries requires explicit cast for parameters to POWER. FLOAT is chosen here as it will return
+            # correct values, though it may sacrifice a small amount of speed
+            return f'POWER(CAST({lhs} AS FLOAT), CAST({rhs} AS FLOAT))'
         return super().combine_expression(connector, sub_expressions)
         # elif connector == '-':
         #     strr = str(sub_expressions[1])
