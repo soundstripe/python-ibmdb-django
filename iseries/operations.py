@@ -78,13 +78,15 @@ class DatabaseOperations(BaseDatabaseOperations):
         return converters
 
     def combine_duration_expression(self, connector, sub_expressions):
+        lhs, rhs = sub_expressions
         if connector not in '+-':
             raise utils.DatabaseError('Invalid connector for timedelta: %s.' % connector)
-        lhs, rhs = sub_expressions
-        if connector == '-':
-            # expression starts as "x DAYS + y SECONDS + z MICROSECONDS"
-            rhs = rhs.replace('+', '-')  # convert the delta additions to subtractions
-        return f'CAST({lhs} AS TIMESTAMP) {connector} {rhs}'
+        if 'MICROSECONDS' not in lhs:
+            lhs = f'CAST({lhs} as TIMESTAMP)'
+        if 'MICROSECONDS' not in rhs:
+            rhs = f'CAST({rhs} as TIMESTAMP)'
+            lhs, rhs = rhs, lhs
+        return f'{lhs} {connector} {rhs}'
 
     def combine_expression(self, connector, sub_expressions):
         lhs, rhs = sub_expressions
@@ -117,6 +119,9 @@ class DatabaseOperations(BaseDatabaseOperations):
     def datetime_cast_date_sql(self, field_name, tzname):
         field_name = self._convert_field_to_tz(field_name, tzname)
         return "DATE(%s)" % field_name
+
+    def field_cast_sql(self, db_type, internal_type):
+        return super().field_cast_sql(db_type, internal_type)
 
     # Function to extract day, month or year from the date.
     # Reference: http://publib.boulder.ibm.com/infocenter/db2luw/v9r5/topic/com.ibm.db2.luw.sql.ref.doc/doc/r0023457.html
@@ -232,7 +237,7 @@ class DatabaseOperations(BaseDatabaseOperations):
         return sql, []
 
     def date_interval_sql(self, timedelta):
-        return " %d days + %d seconds + %d microseconds" % (
+        return "%d DAYS + %d SECONDS + %d MICROSECONDS" % (
             timedelta.days, timedelta.seconds, timedelta.microseconds)
 
     # As casting is not required, so nothing is required to do in this function.
