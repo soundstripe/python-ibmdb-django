@@ -148,7 +148,9 @@ class SQLInsertCompiler(compiler.SQLInsertCompiler, SQLCompiler):
     def as_sql(self):
         """Support returning identity val with single query."""
         (sql, params), *_ = super().as_sql()
-        sql = f'SELECT IDENTITY_VAL_LOCAL() FROM FINAL TABLE ({sql})'
+        qn = self.connection.ops.quote_name
+        opts = self.query.get_meta()
+        sql = f'SELECT {qn(opts.pk.column)} FROM FINAL TABLE ({sql})'
         return [(sql, params)]
 
 
