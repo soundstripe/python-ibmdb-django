@@ -140,25 +140,6 @@ class DatabaseOperations(BaseDatabaseOperations):
         else:
             return " %s(%s) " % (lookup_type.upper(), field_name)
 
-    def _get_utcoffset(self, tzname):
-        if pytz is None and tzname is not None:
-            utils.NotSupportedError("Not supported without pytz")
-        else:
-            hr = 0
-            min = 0
-            tz = pytz.timezone(tzname)
-            td = tz.utcoffset(datetime.datetime(2012, 1, 1))
-            if td.days is -1:
-                min = (td.seconds % (60 * 60)) / 60 - 60
-                if min:
-                    hr = td.seconds / (60 * 60) - 23
-                else:
-                    hr = td.seconds / (60 * 60) - 24
-            else:
-                hr = td.seconds / (60 * 60)
-                min = (td.seconds % (60 * 60)) / 60
-            return hr, min
-
     def adapt_timefield_value(self, value):
         """
         Transform a time value to an object compatible with what is expected
@@ -222,11 +203,7 @@ class DatabaseOperations(BaseDatabaseOperations):
     def datetime_trunc_sql(self, lookup_type, field_name, tzname):
         sql = "TIMESTAMP(SUBSTR(CHAR(%s), 1, %d) || '%s')"
         if settings.USE_TZ:
-            hr, min = self._get_utcoffset(tzname)
-            if hr < 0:
-                field_name = "%s - %s HOURS - %s MINUTES" % (field_name, -hr, -min)
-            else:
-                field_name = "%s + %s HOURS + %s MINUTES" % (field_name, hr, min)
+            raise NotImplemented
         if lookup_type.upper() == 'SECOND':
             sql = sql % (field_name, 19, '.000000')
         if lookup_type.upper() == 'MINUTE':
