@@ -22,5 +22,5 @@ install:
   - pip install -r requirements/py3.txt
 
 script:
-  - cd /tmp/django-3.0/tests
+  - cd /tmp/django/tests
   - ./runtests.py --settings=iseries_settings --noinput --keepdb
