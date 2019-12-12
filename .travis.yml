@@ -1,0 +1,15 @@
+language: python
+python:
+  - "3.8"
+
+install:
+  - python setup.py install
+  - (cd /tmp; wget https://github.com/django/django/archive/3.0.tar.gz; tar -zxf 3.0.tar.gz)
+  - cp tests/settings.py /tmp/django-3.0/tests/iseries_settings.py
+  - cd /tmp/django-3.0/tests
+  - pip install ..
+  - pip install -r requirements/py3.txt
+
+script:
+  - cd /tmp/django-3.0/tests
+  - ./runtests.py --setings=iseries_settings --noinput --keepdb
