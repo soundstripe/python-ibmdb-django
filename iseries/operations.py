@@ -518,3 +518,9 @@ class DatabaseOperations(BaseDatabaseOperations):
         add_constraint_sql = f"ALTER TABLE {ref_t} ADD CONSTRAINT {cst} " \
                              f"FOREIGN KEY ({col}) REFERENCES {target_t} ({target_col})"
         return add_constraint_sql
+
+    def _convert_field_to_tz(self, field_name, tzname):
+        # TODO: this function does not work properly on iseries
+        if settings.USE_TZ:
+            field_name = "CONVERT_TZ(%s, 'UTC', '%s')" % (field_name, tzname)
+        return field_name
