@@ -23,4 +23,4 @@ install:
 
 script:
   - cd /tmp/django-3.0/tests
-  - ./runtests.py --setings=iseries_settings --noinput --keepdb
+  - ./runtests.py --settings=iseries_settings --noinput --keepdb
