@@ -20,19 +20,13 @@
 
 import datetime
 import re
-import sys
-import warnings
 
 # For checking django's version
 from functools import partial
 from typing import Optional
 
 import sqlparse
-from django import VERSION as djangoVersion
-from django.conf import settings
 from django.db import utils
-from django.utils import six
-from django.utils import timezone
 
 from . import Database
 
