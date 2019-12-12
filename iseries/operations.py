@@ -78,6 +78,10 @@ class DatabaseOperations(BaseDatabaseOperations):
         return converters
 
     def combine_duration_expression(self, connector, sub_expressions):
+        if 'NULL' in sub_expressions:
+            # django expects that adding a null duration will return null
+            return 'NULL'
+
         lhs, rhs = sub_expressions
         if connector not in '+-':
             raise utils.DatabaseError('Invalid connector for timedelta: %s.' % connector)
@@ -114,7 +118,9 @@ class DatabaseOperations(BaseDatabaseOperations):
         return value
 
     def format_for_duration_arithmetic(self, sql):
-        return 'COALESCE(CAST(%s AS BIGINT), 0) MICROSECONDS' % sql
+        if sql == 'NULL':
+            return sql
+        return 'CAST(%s AS BIGINT) MICROSECONDS' % sql
 
     def datetime_cast_date_sql(self, field_name, tzname):
         field_name = self._convert_field_to_tz(field_name, tzname)
