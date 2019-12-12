@@ -91,6 +91,8 @@ class DatabaseOperations(BaseDatabaseOperations):
         if 'MICROSECONDS' not in rhs:
             rhs = f'CAST({rhs} as TIMESTAMP)'
             lhs, rhs = rhs, lhs
+        if connector == '-' and 'MICROSECONDS' in rhs:
+            rhs = rhs.replace('+', '-')
         return f'{lhs} {connector} {rhs}'
 
     def combine_expression(self, connector, sub_expressions):
