@@ -198,11 +198,7 @@ class DatabaseOperations(BaseDatabaseOperations):
     # Function to extract time zone-aware day, month or day of week from timestamps   
     def datetime_extract_sql(self, lookup_type, field_name, tzname):
         if settings.USE_TZ:
-            hr, min = self._get_utcoffset(tzname)
-            if hr < 0:
-                field_name = "%s - %s HOURS - %s MINUTES" % (field_name, -hr, -min)
-            else:
-                field_name = "%s + %s HOURS + %s MINUTES" % (field_name, hr, min)
+            raise NotImplemented
 
         if lookup_type.upper() == 'WEEK_DAY':
             return " DAYOFWEEK(%s) " % (field_name)
@@ -524,3 +520,6 @@ class DatabaseOperations(BaseDatabaseOperations):
         if settings.USE_TZ:
             field_name = "CONVERT_TZ(%s, 'UTC', '%s')" % (field_name, tzname)
         return field_name
+
+    def check_expression_support(self, expression):
+        super().check_expression_support(expression)
