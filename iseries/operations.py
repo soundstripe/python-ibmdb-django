@@ -80,7 +80,8 @@ class DatabaseOperations(BaseDatabaseOperations):
     def combine_duration_expression(self, connector, sub_expressions):
         if 'NULL' in sub_expressions:
             # django expects that adding a null duration will return null
-            return 'NULL'
+            # db2 does not allow untyped columns
+            return 'CAST(NULL AS TIMESTAMP)'
 
         lhs, rhs = sub_expressions
         if connector not in '+-':
