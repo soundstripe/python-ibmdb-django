@@ -5,7 +5,7 @@ python:
 install:
   - mkdir /tmp/django
   - wget https://github.com/django/django/archive/3.0.tar.gz -O /tmp/django.tar.gz
-  - tar -xzf -C /tmp/django django.tar.gz --strip-components=1
+  - tar -C /tmp/django -xzf django.tar.gz --strip-components=1
   - pip install /tmp/django
   - pip install .
   - cp tests/settings.py /tmp/django/tests/iseries_settings.py
