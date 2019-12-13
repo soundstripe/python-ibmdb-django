@@ -28,4 +28,4 @@ install:
 
 script:
   - cd /tmp/django/tests
-  - ./runtests.py --settings=iseries_settings --noinput --keepdb
+  - ./runtests.py aggregation query backends basic expressions generic_relations migrations ordering queries update select_for_update --noinput --keepdb
