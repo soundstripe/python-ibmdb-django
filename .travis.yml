@@ -26,7 +26,16 @@ install:
 
 env:
   - DJANGO_SETTINGS_MODULE=tests.settings
+  - TEST_SUITE=basic
+  - TEST_SUITE=aggregation
+  - TEST_SUITE=backends
+  - TEST_SUITE=expressions
+  - TEST_SUITE=generic_relations
+  - TEST_SUITE=migrations
+  - TEST_SUITE=ordering
+  - TEST_SUITE=query
+  - TEST_SUITE=update
+  - TEST_SUITE=select_for_update
 
 script:
-  - cd /tmp/django/tests
-  - ./runtests.py aggregation query backends basic expressions generic_relations migrations ordering queries update select_for_update --noinput --keepdb
+  - /tmp/django/tests/runtests.py $TEST_SUITE --noinput --keepdb
