@@ -19,6 +19,7 @@
 
 
 import datetime
+import platform
 import re
 
 # For checking django's version
@@ -51,9 +52,9 @@ SQLCODE_0910_REGEX = re.compile("^(\[.+\] *){4}SQL0910.*")
 class DatabaseWrapper:
     # Get new database connection for non persistance connection 
     def get_new_connection(self, kwargs):
-        kwargsKeys = kwargs.keys()
-        if 'port' in kwargsKeys and 'host' in kwargsKeys:
-            kwargs['dsn'] = "DRIVER={iSeries Access ODBC Driver};DATABASE=%s;" \
+        driver_name = 'iSeries Access ODBC Driver' if platform.system() == 'Windows' else 'IBM i Access ODBC Driver'
+        if 'port' in kwargs and 'host' in kwargs:
+            kwargs['dsn'] = f"DRIVER={{{driver_name}}};DATABASE=%s;" \
                             "SYSTEM=%s;PORT=%s;PROTOCOL=TCPIP;UID=%s;PWD=%s" % (
                 kwargs.get('database'),
                 kwargs.get('host'),
@@ -64,32 +65,32 @@ class DatabaseWrapper:
         else:
             kwargs['dsn'] = kwargs.get('database')
 
-        if 'security' in kwargsKeys:
+        if 'security' in kwargs:
             kwargs['dsn'] += "security=%s;" % (kwargs.get('security'))
             del kwargs['security']
 
-        if 'sslclientkeystoredb' in kwargsKeys:
+        if 'sslclientkeystoredb' in kwargs:
             kwargs['dsn'] += "SSLCLIENTKEYSTOREDB=%s;" % (kwargs.get('sslclientkeystoredb'))
             del kwargs['sslclientkeystoredb']
 
-        if 'sslclientkeystoredbpassword' in kwargsKeys:
+        if 'sslclientkeystoredbpassword' in kwargs:
             kwargs['dsn'] += "SSLCLIENTKEYSTOREDBPASSWORD=%s;" % (kwargs.get('sslclientkeystoredbpassword'))
             del kwargs['sslclientkeystoredbpassword']
 
-        if 'sslclientkeystash' in kwargsKeys:
+        if 'sslclientkeystash' in kwargs:
             kwargs['dsn'] += "SSLCLIENTKEYSTASH=%s;" % (kwargs.get('sslclientkeystash'))
             del kwargs['sslclientkeystash']
 
-        if 'sslservercertificate' in kwargsKeys:
+        if 'sslservercertificate' in kwargs:
             kwargs['dsn'] += "SSLSERVERCERTIFICATE=%s;" % (kwargs.get('sslservercertificate'))
             del kwargs['sslservercertificate']
 
         conn_options = {'autocommit': False}
         kwargs['conn_options'] = conn_options
-        if 'options' in kwargsKeys:
+        if 'options' in kwargs:
             kwargs.update(kwargs.get('options'))
             del kwargs['options']
-        if 'port' in kwargsKeys:
+        if 'port' in kwargs:
             del kwargs['port']
 
         currentschema = kwargs.pop('currentschema', None)
