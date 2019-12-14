@@ -54,7 +54,8 @@ class DatabaseWrapper:
     def get_new_connection(self, kwargs):
         driver_name = 'iSeries Access ODBC Driver' if platform.system() == 'Windows' else 'IBM i Access ODBC Driver'
         if 'port' in kwargs and 'host' in kwargs:
-            kwargs['dsn'] = f"DRIVER={{{driver_name}}};DATABASE=%s;" \
+            kwargs['dsn'] = f"DRIVER={{{driver_name}}};DATABASE=%s;UNICODESQL=1;XDYNAMIC=1;" \
+                            f"PKG=A/DJANGO,2,0,0,1,512;" \
                             "SYSTEM=%s;PORT=%s;PROTOCOL=TCPIP;UID=%s;PWD=%s" % (
                 kwargs.get('database'),
                 kwargs.get('host'),
