@@ -429,11 +429,17 @@ class DatabaseOperations(BaseDatabaseOperations):
         return f"VALUES {values_sql}"
 
     def for_update_sql(self, nowait=False, skip_locked=False, of=()):
+        """
+        Return the FOR UPDATE SQL clause to lock rows for an update operation.
+        """
         # DB2 doesn't support nowait select for update
         if nowait:
-            raise utils.DatabaseError("Nowait Select for update not supported ")
-        else:
-            return 'WITH RS USE AND KEEP UPDATE LOCKS'
+            raise utils.NotSupportedError("NOWAIT clause not supported by Db2 for iSeries")
+        return 'FOR UPDATE%s%s' % (
+            ' OF %s' % ', '.join(of) if of else '',
+            ' SKIP LOCKED DATA' if skip_locked else '',
+        )
+
 
     def fetch_returned_insert_id(self, cursor):
         return cursor.fetchone()[0]
