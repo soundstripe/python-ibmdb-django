@@ -68,9 +68,9 @@ class DatabaseIntrospection(BaseDatabaseIntrospection):
         relations = {}
         schema = cursor.get_current_schema()
         for fk in cursor.foreignKeys(table=table_name, schema=schema):
-            relations[self.__get_col_index(cursor, schema, table_name, fk['FKCOLUMN_NAME'])] = (
-                self.__get_col_index(cursor, schema, fk['PKTABLE_NAME'], fk['PKCOLUMN_NAME']),
-                fk['PKTABLE_NAME'].lower())
+            relations[self.__get_col_index(cursor, schema, table_name, fk.FKCOLUMN_NAME)] = (
+                self.__get_col_index(cursor, schema, fk.PKTABLE_NAME, fk.PKCOLUMN_NAME),
+                fk.PKTABLE_NAME.lower())
         return relations
 
     # Private method. Getting Index position of column by its name
@@ -82,7 +82,7 @@ class DatabaseIntrospection(BaseDatabaseIntrospection):
         relations = []
         schema = cursor.get_current_schema()
         for fk in cursor.foreignKeys(table=table_name, schema=schema):
-            relations.append((fk['FKCOLUMN_NAME'].lower(), fk['PKTABLE_NAME'].lower(), fk['PKCOLUMN_NAME'].lower()))
+            relations.append((fk.FKCOLUMN_NAME.lower(), fk.PKTABLE_NAME.lower(), fk.PKCOLUMN_NAME.lower()))
         return relations
 
     # Getting the description of the table.
@@ -101,7 +101,8 @@ class DatabaseIntrospection(BaseDatabaseIntrospection):
         if table_type != 'X':
             cursor.execute("SELECT * FROM %s FETCH FIRST 1 ROWS ONLY" % qn(table_name))
             for desc in cursor.description:
-                description.append([desc[0].lower(), ] + desc[1:])
+                description.append(FieldInfo(*desc, None))
+
         return description
 
     def get_constraints(self, cursor, table_name):
@@ -141,8 +142,8 @@ class DatabaseIntrospection(BaseDatabaseIntrospection):
             constraints[constname]['columns'].append(colname.lower())
 
         for pkey in cursor.primaryKeys(schema=schema, table=table_name):
-            if pkey['PK_NAME'] not in constraints:
-                constraints[pkey['PK_NAME']] = {
+            if pkey.pk_name not in constraints:
+                constraints[pkey.pk_name] = {
                     'columns': [],
                     'primary_key': True,
                     'unique': False,
@@ -150,23 +151,23 @@ class DatabaseIntrospection(BaseDatabaseIntrospection):
                     'check': False,
                     'index': True
                 }
-            constraints[pkey['PK_NAME']]['columns'].append(pkey['COLUMN_NAME'].lower())
+            constraints[pkey.pk_name]['columns'].append(pkey.column_name.lower())
 
         for fk in cursor.foreignKeys(table=table_name, schema=schema):
-            if fk['FK_NAME'] not in constraints:
-                constraints[fk['FK_NAME']] = {
+            if fk.fk_name not in constraints:
+                constraints[fk.fk_name] = {
                     'columns': [],
                     'primary_key': False,
                     'unique': False,
-                    'foreign_key': (fk['PKTABLE_NAME'].lower(), fk['PKCOLUMN_NAME'].lower()),
+                    'foreign_key': (fk.pktable_name.lower(), fk.pkcolumn_name.lower()),
                     'check': False,
                     'index': False
                 }
-            constraints[fk['FK_NAME']]['columns'].append(fk['FKCOLUMN_NAME'].lower())
-            if fk['PKCOLUMN_NAME'].lower() not in constraints[fk['FK_NAME']]['foreign_key']:
-                fkeylist = list(constraints[fk['FK_NAME']]['foreign_key'])
-                fkeylist.append(fk['PKCOLUMN_NAME'].lower())
-                constraints[fk['FK_NAME']]['foreign_key'] = tuple(fkeylist)
+            constraints[fk.fk_name]['columns'].append(fk.fkcolumn_name.lower())
+            if fk.pkcolumn_name.lower() not in constraints[fk.fk_name]['foreign_key']:
+                fkeylist = list(constraints[fk.fk_name]['foreign_key'])
+                fkeylist.append(fk.pkcolumn_name.lower())
+                constraints[fk.fk_name]['foreign_key'] = tuple(fkeylist)
 
         sql = ("SELECT IDX.INDEX_NAME, K.COLUMN_NAME "
                "  FROM QSYS2.SYSINDEXES IDX "
