@@ -70,7 +70,7 @@ class DatabaseIntrospection(BaseDatabaseIntrospection):
     def get_relations(self, cursor, table_name):
         relations = {}
         schema = cursor.get_current_schema()
-        for fk in cursor.connection.foreign_keys(True, schema, table_name):
+        for fk in cursor.connection.foreignKeys(True, schema, table_name):
             relations[self.__get_col_index(cursor, schema, table_name, fk['FKCOLUMN_NAME'])] = (
                 self.__get_col_index(cursor, schema, fk['PKTABLE_NAME'], fk['PKCOLUMN_NAME']),
                 fk['PKTABLE_NAME'].lower())
@@ -84,7 +84,7 @@ class DatabaseIntrospection(BaseDatabaseIntrospection):
     def get_key_columns(self, cursor, table_name):
         relations = []
         schema = cursor.get_current_schema()
-        for fk in cursor.connection.foreign_keys(True, schema, table_name):
+        for fk in cursor.connection.foreignKeys(True, schema, table_name):
             relations.append((fk['FKCOLUMN_NAME'].lower(), fk['PKTABLE_NAME'].lower(), fk['PKCOLUMN_NAME'].lower()))
         return relations
 
@@ -111,7 +111,7 @@ class DatabaseIntrospection(BaseDatabaseIntrospection):
             temp['primary_key'] = False
             indexes[index['COLUMN_NAME'].lower()] = temp
 
-        for index in cursor.connection.primary_keys(True, schema, table_name):
+        for index in cursor.connection.primaryKeys(True, schema, table_name):
             indexes[index['COLUMN_NAME'].lower()]['primary_key'] = True
         return indexes
 
@@ -199,7 +199,7 @@ class DatabaseIntrospection(BaseDatabaseIntrospection):
                 }
             constraints[constname]['columns'].append(colname.lower())
 
-        for pkey in cursor.connection.primary_keys(None, schema, table_name):
+        for pkey in cursor.connection.primaryKeys(None, schema, table_name):
             if pkey['PK_NAME'] not in constraints:
                 constraints[pkey['PK_NAME']] = {
                     'columns': [],
@@ -211,7 +211,7 @@ class DatabaseIntrospection(BaseDatabaseIntrospection):
                 }
             constraints[pkey['PK_NAME']]['columns'].append(pkey['COLUMN_NAME'].lower())
 
-        for fk in cursor.connection.foreign_keys(True, schema, table_name):
+        for fk in cursor.connection.foreignKeys(True, schema, table_name):
             if fk['FK_NAME'] not in constraints:
                 constraints[fk['FK_NAME']] = {
                     'columns': [],
