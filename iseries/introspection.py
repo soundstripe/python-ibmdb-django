@@ -34,6 +34,7 @@ class DatabaseIntrospection(BaseDatabaseIntrospection):
 
     data_types_reverse = {
         'VARCHAR': 'CharField',
+        'CHAR': 'CharField',
         'DATE': 'DateField',
         'TIMESTAMP': 'DateTimeField',
         'TIMESTMP': 'DateTimeField',
