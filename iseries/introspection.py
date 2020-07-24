@@ -15,10 +15,7 @@
 # +--------------------------------------------------------------------------+
 # | Authors: Ambrish Bhargava, Tarun Pasrija, Rahul Priyadarshi              |
 # +--------------------------------------------------------------------------+
-import sys
 from collections import namedtuple
-
-from pyodbc import Cursor
 
 from . import Database
 
@@ -87,33 +84,6 @@ class DatabaseIntrospection(BaseDatabaseIntrospection):
         for fk in cursor.foreignKeys(table=table_name, schema=schema):
             relations.append((fk['FKCOLUMN_NAME'].lower(), fk['PKTABLE_NAME'].lower(), fk['PKCOLUMN_NAME'].lower()))
         return relations
-
-    # Getting list of indexes associated with the table provided.
-    def get_indexes(self, cursor, table_name):
-        indexes = {}
-        # To skip indexes across multiple fields
-        multifield_indexSet = set()
-        schema = cursor.get_current_schema()
-        all_indexes = cursor.indexes(table=table_name, schema=schema)
-        for index in all_indexes:
-            if (index['ORDINAL_POSITION'] is not None) and (index['ORDINAL_POSITION'] == 2):
-                multifield_indexSet.add(index['INDEX_NAME'])
-
-        for index in all_indexes:
-            temp = {}
-            if index['INDEX_NAME'] in multifield_indexSet:
-                continue
-
-            if (index['NON_UNIQUE']):
-                temp['unique'] = False
-            else:
-                temp['unique'] = True
-            temp['primary_key'] = False
-            indexes[index['COLUMN_NAME'].lower()] = temp
-
-        for index in cursor.primaryKeys(table=table_name, schema=schema):
-            indexes[index['COLUMN_NAME'].lower()]['primary_key'] = True
-        return indexes
 
     # Getting the description of the table.
     def get_table_description(self, cursor, table_name):
@@ -198,9 +168,16 @@ class DatabaseIntrospection(BaseDatabaseIntrospection):
                 fkeylist.append(fk['PKCOLUMN_NAME'].lower())
                 constraints[fk['FK_NAME']]['foreign_key'] = tuple(fkeylist)
 
-        for index in cursor.indexes(table=table_name, schema=schema):
-            if index['INDEX_NAME'] not in constraints:
-                constraints[index['INDEX_NAME']] = {
+        sql = ("SELECT IDX.INDEX_NAME, K.COLUMN_NAME "
+               "  FROM QSYS2.SYSINDEXES IDX "
+               "  JOIN QSYS2.SYSKEYS K ON ( IDX.INDEX_NAME, IDX.INDEX_SCHEMA ) = ( K.INDEX_NAME, K.INDEX_SCHEMA ) "
+               " WHERE TABLE_NAME = ? "
+               "   AND TABLE_SCHEMA = ? "
+               "ORDER BY IDX.INDEX_NAME, K.ORDINAL_POSITION")
+        indexes = cursor.execute(sql, [table_name.upper(), schema.upper()])
+        for index_name, column_name in indexes.fetchall():
+            if index_name not in constraints:
+                constraints[index_name] = {
                     'columns': [],
                     'primary_key': False,
                     'unique': False,
@@ -208,11 +185,11 @@ class DatabaseIntrospection(BaseDatabaseIntrospection):
                     'check': False,
                     'index': True
                 }
-            elif constraints[index['INDEX_NAME']]['unique']:
+            elif constraints[index_name]['unique']:
                 continue
-            elif constraints[index['INDEX_NAME']]['primary_key']:
+            elif constraints[index_name]['primary_key']:
                 continue
-            constraints[index['INDEX_NAME']]['columns'].append(index['COLUMN_NAME'].lower())
+            constraints[index_name]['columns'].append(column_name.lower())
         return constraints
 
     def get_sequences(self, cursor, table_name, table_fields=()):
