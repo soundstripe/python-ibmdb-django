@@ -33,25 +33,19 @@ class DatabaseIntrospection(BaseDatabaseIntrospection):
     """
 
     data_types_reverse = {
-        Database.SQL_BIGINT: "BigIntegerField",
-        Database.SQL_BINARY: "BinaryField",
-        Database.SQL_CHAR: "CharField",
-        Database.SQL_DECIMAL: "DecimalField",
-        Database.SQL_DOUBLE: "FloatField",
-        Database.SQL_FLOAT: "FloatField",
-        Database.SQL_INTEGER: "IntegerField",
-        Database.SQL_LONGVARBINARY: 'BinaryField',
-        Database.SQL_LONGVARCHAR: 'TextField',
-        Database.SQL_NUMERIC: "DecimalField",
-        Database.SQL_SS_XML: "XMLField",
-        Database.SQL_TYPE_DATE: "DateField",
-        Database.SQL_TYPE_TIME: "TimeField",
-        Database.SQL_TYPE_TIMESTAMP: "DateTimeField",
-        Database.SQL_VARBINARY: 'BinaryField',
-        Database.SQL_VARCHAR: "TextField",
-        Database.SQL_WCHAR: 'CharField',
-        Database.SQL_WLONGVARCHAR: 'TextField',
-        Database.SQL_WVARCHAR: 'TextField',
+        'VARCHAR': 'CharField',
+        'DATE': 'DateField',
+        'TIMESTAMP': 'DateTimeField',
+        'TIMESTMP': 'DateTimeField',
+        'DECIMAL': 'DecimalField',
+        'DOUBLE': 'FloatField',
+        'INTEGER': 'IntegerField',
+        'BIGINT': 'BigIntegerField',
+        'SMALLINT': 'SmallIntegerField',
+        'CLOB': 'TextField',
+        'TIME': 'TimeField',
+        'XML': 'XMLField',
+        'BLOB': 'BinaryField',
     }
 
     def get_field_type(self, data_type, description):
@@ -90,18 +84,25 @@ class DatabaseIntrospection(BaseDatabaseIntrospection):
         qn = self.connection.ops.quote_name
         description = []
         table_type = 'T'
-        schema = cursor.get_current_schema()
 
-        sql = "SELECT TYPE FROM QSYS2.SYSTABLES WHERE TABLE_SCHEMA='%(schema)s' AND TABLE_NAME='%(table)s'" % {
-            'schema': schema.upper(), 'table': table_name.upper()
-        }
-        cursor.execute(sql)
+        sql = "SELECT TYPE FROM QSYS2.SYSTABLES WHERE TABLE_SCHEMA=CURRENT_SCHEMA AND TABLE_NAME=?"
+        cursor.execute(sql, [table_name.upper()])
         table_type = cursor.fetchone()[0]
 
         if table_type != 'X':
+            sql = "SELECT TRIM(column_name), TRIM(data_type) " \
+                  "  FROM QSYS2.SYSCOLUMNS WHERE TABLE_NAME = ? AND TABLE_SCHEMA = CURRENT_SCHEMA"
+            column_data_types = cursor.execute(sql, [table_name])
+            column_data_types = dict(column_data_types.fetchall())
+
             cursor.execute("SELECT * FROM %s FETCH FIRST 1 ROWS ONLY" % qn(table_name))
             for desc in cursor.description:
-                description.append(FieldInfo(*desc, None))
+                description.append(FieldInfo(
+                    self.identifier_converter(desc[0]),
+                    column_data_types[desc[0]],
+                    *desc[2:],
+                    None
+                ))
 
         return description
 
