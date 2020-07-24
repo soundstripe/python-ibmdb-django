@@ -61,10 +61,10 @@ class DatabaseIntrospection(BaseDatabaseIntrospection):
     def get_relations(self, cursor, table_name):
         relations = {}
         schema = cursor.get_current_schema()
-        for fk in cursor.foreignKeys(table=table_name, schema=schema):
+        for fk in cursor.foreignKeys(table=table_name.upper(), schema=schema):
             relations[self.__get_col_index(cursor, schema, table_name, fk.FKCOLUMN_NAME)] = (
                 self.__get_col_index(cursor, schema, fk.PKTABLE_NAME, fk.PKCOLUMN_NAME),
-                fk.PKTABLE_NAME.lower())
+                self.identifier_converter(fk.PKTABLE_NAME))
         return relations
 
     # Private method. Getting Index position of column by its name
@@ -75,15 +75,16 @@ class DatabaseIntrospection(BaseDatabaseIntrospection):
     def get_key_columns(self, cursor, table_name):
         relations = []
         schema = cursor.get_current_schema()
-        for fk in cursor.foreignKeys(table=table_name, schema=schema):
-            relations.append((fk.FKCOLUMN_NAME.lower(), fk.PKTABLE_NAME.lower(), fk.PKCOLUMN_NAME.lower()))
+        for fk in cursor.foreignKeys(table=table_name.upper(), schema=schema):
+            relations.append((self.identifier_converter(fk.FKCOLUMN_NAME),
+                              self.identifier_converter(fk.PKTABLE_NAME),
+                              self.identifier_converter(fk.PKCOLUMN_NAME)))
         return relations
 
     # Getting the description of the table.
     def get_table_description(self, cursor, table_name):
         qn = self.connection.ops.quote_name
         description = []
-        table_type = 'T'
 
         sql = "SELECT TYPE FROM QSYS2.SYSTABLES WHERE TABLE_SCHEMA=CURRENT_SCHEMA AND TABLE_NAME=?"
         cursor.execute(sql, [table_name.upper()])
@@ -92,7 +93,7 @@ class DatabaseIntrospection(BaseDatabaseIntrospection):
         if table_type != 'X':
             sql = "SELECT TRIM(column_name), TRIM(data_type) " \
                   "  FROM QSYS2.SYSCOLUMNS WHERE TABLE_NAME = ? AND TABLE_SCHEMA = CURRENT_SCHEMA"
-            column_data_types = cursor.execute(sql, [table_name])
+            column_data_types = cursor.execute(sql, [table_name.upper()])
             column_data_types = dict(column_data_types.fetchall())
 
             cursor.execute("SELECT * FROM %s FETCH FIRST 1 ROWS ONLY" % qn(table_name))
@@ -124,7 +125,7 @@ class DatabaseIntrospection(BaseDatabaseIntrospection):
                     'check': True,
                     'index': False
                 }
-            constraints[constname]['columns'].append(colname.lower())
+            constraints[constname]['columns'].append(self.identifier_converter(colname))
 
         sql = "SELECT KEYCOL.CONSTRAINT_NAME, KEYCOL.COLUMN_NAME FROM QSYS2.SYSKEYCST KEYCOL INNER JOIN QSYS2.SYSCST TABCONST ON KEYCOL.CONSTRAINT_NAME=TABCONST.CONSTRAINT_NAME WHERE TABCONST.TABLE_SCHEMA='%(schema)s' and TABCONST.TABLE_NAME='%(table)s' and TABCONST.TYPE='U'" % {
             'schema': schema.upper(), 'table': table_name.upper()
@@ -140,7 +141,7 @@ class DatabaseIntrospection(BaseDatabaseIntrospection):
                     'check': False,
                     'index': True
                 }
-            constraints[constname]['columns'].append(colname.lower())
+            constraints[constname]['columns'].append(self.identifier_converter(colname))
 
         for pkey in cursor.primaryKeys(schema=schema, table=table_name):
             if pkey.pk_name not in constraints:
@@ -152,22 +153,22 @@ class DatabaseIntrospection(BaseDatabaseIntrospection):
                     'check': False,
                     'index': True
                 }
-            constraints[pkey.pk_name]['columns'].append(pkey.column_name.lower())
+            constraints[pkey.pk_name]['columns'].append(self.identifier_converter(pkey.column_name))
 
-        for fk in cursor.foreignKeys(table=table_name, schema=schema):
+        for fk in cursor.foreignKeys(table=table_name.upper(), schema=schema):
             if fk.fk_name not in constraints:
                 constraints[fk.fk_name] = {
                     'columns': [],
                     'primary_key': False,
                     'unique': False,
-                    'foreign_key': (fk.pktable_name.lower(), fk.pkcolumn_name.lower()),
+                    'foreign_key': (self.identifier_converter(fk.pktable_name), self.identifier_converter(fk.pkcolumn_name)),
                     'check': False,
                     'index': False
                 }
-            constraints[fk.fk_name]['columns'].append(fk.fkcolumn_name.lower())
-            if fk.pkcolumn_name.lower() not in constraints[fk.fk_name]['foreign_key']:
+            constraints[fk.fk_name]['columns'].append(self.identifier_converter(fk.fkcolumn_name))
+            if self.identifier_converter(fk.pkcolumn_name) not in constraints[fk.fk_name]['foreign_key']:
                 fkeylist = list(constraints[fk.fk_name]['foreign_key'])
-                fkeylist.append(fk.pkcolumn_name.lower())
+                fkeylist.append(self.identifier_converter(fk.pkcolumn_name))
                 constraints[fk.fk_name]['foreign_key'] = tuple(fkeylist)
 
         sql = ("SELECT IDX.INDEX_NAME, K.COLUMN_NAME "
@@ -191,7 +192,7 @@ class DatabaseIntrospection(BaseDatabaseIntrospection):
                 continue
             elif constraints[index_name]['primary_key']:
                 continue
-            constraints[index_name]['columns'].append(column_name.lower())
+            constraints[index_name]['columns'].append(self.identifier_converter(column_name))
         return constraints
 
     def get_sequences(self, cursor, table_name, table_fields=()):
