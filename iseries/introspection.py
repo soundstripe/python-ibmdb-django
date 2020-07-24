@@ -70,7 +70,7 @@ class DatabaseIntrospection(BaseDatabaseIntrospection):
     def get_relations(self, cursor, table_name):
         relations = {}
         schema = cursor.get_current_schema()
-        for fk in cursor.connection.foreignKeys(True, schema, table_name):
+        for fk in cursor.foreignKeys(True, schema, table_name):
             relations[self.__get_col_index(cursor, schema, table_name, fk['FKCOLUMN_NAME'])] = (
                 self.__get_col_index(cursor, schema, fk['PKTABLE_NAME'], fk['PKCOLUMN_NAME']),
                 fk['PKTABLE_NAME'].lower())
@@ -78,13 +78,13 @@ class DatabaseIntrospection(BaseDatabaseIntrospection):
 
     # Private method. Getting Index position of column by its name
     def __get_col_index(self, cursor, schema, table_name, col_name):
-        for col in cursor.connection.columns(schema, table_name, [col_name]):
+        for col in cursor.columns(schema, table_name, [col_name]):
             return col['ORDINAL_POSITION'] - 1
 
     def get_key_columns(self, cursor, table_name):
         relations = []
         schema = cursor.get_current_schema()
-        for fk in cursor.connection.foreignKeys(True, schema, table_name):
+        for fk in cursor.foreignKeys(True, schema, table_name):
             relations.append((fk['FKCOLUMN_NAME'].lower(), fk['PKTABLE_NAME'].lower(), fk['PKCOLUMN_NAME'].lower()))
         return relations
 
@@ -94,7 +94,7 @@ class DatabaseIntrospection(BaseDatabaseIntrospection):
         # To skip indexes across multiple fields
         multifield_indexSet = set()
         schema = cursor.get_current_schema()
-        all_indexes = cursor.connection.indexes(True, schema, table_name)
+        all_indexes = cursor.indexes(True, schema, table_name)
         for index in all_indexes:
             if (index['ORDINAL_POSITION'] is not None) and (index['ORDINAL_POSITION'] == 2):
                 multifield_indexSet.add(index['INDEX_NAME'])
@@ -199,7 +199,7 @@ class DatabaseIntrospection(BaseDatabaseIntrospection):
                 }
             constraints[constname]['columns'].append(colname.lower())
 
-        for pkey in cursor.connection.primaryKeys(None, schema, table_name):
+        for pkey in cursor.primaryKeys(None, schema, table_name):
             if pkey['PK_NAME'] not in constraints:
                 constraints[pkey['PK_NAME']] = {
                     'columns': [],
@@ -211,7 +211,7 @@ class DatabaseIntrospection(BaseDatabaseIntrospection):
                 }
             constraints[pkey['PK_NAME']]['columns'].append(pkey['COLUMN_NAME'].lower())
 
-        for fk in cursor.connection.foreignKeys(True, schema, table_name):
+        for fk in cursor.foreignKeys(True, schema, table_name):
             if fk['FK_NAME'] not in constraints:
                 constraints[fk['FK_NAME']] = {
                     'columns': [],
@@ -227,7 +227,7 @@ class DatabaseIntrospection(BaseDatabaseIntrospection):
                 fkeylist.append(fk['PKCOLUMN_NAME'].lower())
                 constraints[fk['FK_NAME']]['foreign_key'] = tuple(fkeylist)
 
-        for index in cursor.connection.indexes(True, schema, table_name):
+        for index in cursor.indexes(True, schema, table_name):
             if index['INDEX_NAME'] not in constraints:
                 constraints[index['INDEX_NAME']] = {
                     'columns': [],
