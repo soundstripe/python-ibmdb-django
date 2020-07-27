@@ -62,11 +62,12 @@ class DatabaseIntrospection(BaseDatabaseIntrospection):
     def get_relations(self, cursor, table_name):
         relations = {}
         schema = cursor.get_current_schema()
-        foreign_keys = list(cursor.foreignKeys(table=table_name.upper(), schema=schema))
+        foreign_keys = list(cursor.foreignKeys(foreignTable=table_name.upper(), schema=schema))
         for fk in foreign_keys:
-            relations[self.__get_col_index(cursor, schema, table_name, fk.fkcolumn_name)] = (
-                self.__get_col_index(cursor, schema, fk.pktable_name, fk.pkcolumn_name),
-                self.identifier_converter(fk.pktable_name))
+            relations[self.identifier_converter(fk.fkcolumn_name)] = (
+                self.identifier_converter(fk.pktable_name),
+                self.identifier_converter(fk.pkcolumn_name),
+            )
         return relations
 
     # Private method. Getting Index position of column by its name
