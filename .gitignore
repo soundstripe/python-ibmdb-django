@@ -267,3 +267,4 @@ dmypy.json
 cython_debug/
 
 ibm*.deb
+venv_*/
