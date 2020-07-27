@@ -96,108 +96,69 @@ class DatabaseIntrospection(BaseDatabaseIntrospection):
         table_type = cursor.fetchone()[0]
 
         if table_type != 'X':
-            sql = "SELECT TRIM(column_name), TRIM(data_type) " \
-                  "  FROM QSYS2.SYSCOLUMNS WHERE TABLE_NAME = ? AND TABLE_SCHEMA = CURRENT_SCHEMA"
-            column_data_types = cursor.execute(sql, [table_name.upper()])
-            column_data_types = dict(column_data_types.fetchall())
+            sql = """SELECT TRIM( COLUMN_NAME ) AS COLUMN_NAME
+                          , TRIM( DATA_TYPE )   AS DATA_TYPE
+                          , LENGTH              AS DISPLAY_SIZE
+                          , STORAGE             AS INTERNAL_SIZE
+                          , NUMERIC_PRECISION
+                          , NUMERIC_SCALE
+                          , IS_NULLABLE
+                     FROM QSYS2.SYSCOLUMNS C
+                     WHERE TABLE_NAME = ?
+                       AND TABLE_SCHEMA = CURRENT_SCHEMA
+                     ORDER BY ORDINAL_POSITION"""
+            column_descriptions = cursor.execute(sql, [table_name.upper()])
 
-            cursor.execute("SELECT * FROM %s FETCH FIRST 1 ROWS ONLY" % qn(table_name))
-            for desc in cursor.description:
+            for desc in column_descriptions:
                 description.append(FieldInfo(
                     self.identifier_converter(desc[0]),
-                    column_data_types[desc[0]],
+                    desc[1],
                     *desc[2:],
                     None
                 ))
-
         return description
 
     def get_constraints(self, cursor, table_name):
         constraints = {}
         schema = cursor.get_current_schema()
 
-        sql = "SELECT CONSTRAINT_NAME, COLUMN_NAME FROM QSYS2.SYSCSTCOL WHERE TABLE_SCHEMA='%(schema)s' AND TABLE_NAME='%(table)s'" % {
-            'schema': schema.upper(), 'table': table_name.upper()
-        }
-        cursor.execute(sql)
-        for constname, colname in cursor.fetchall():
-            if constname not in constraints:
-                constraints[constname] = {
-                    'columns': [],
-                    'primary_key': False,
-                    'unique': False,
-                    'foreign_key': None,
-                    'check': True,
-                    'index': False
-                }
-            constraints[constname]['columns'].append(self.identifier_converter(colname))
+        sql = """SELECT CST.CONSTRAINT_NAME
+                     , COLUMN_NAME
+                     , CASE CONSTRAINT_TYPE WHEN 'PRIMARY KEY' THEN 1 ELSE 0 END AS IS_PRIMARY
+                     , CASE CONSTRAINT_TYPE WHEN 'UNIQUE' THEN 1 ELSE 0 END      AS IS_UNIQUE
+                     , CASE CONSTRAINT_TYPE WHEN 'FOREIGN KEY' THEN 1 ELSE 0 END AS IS_FOREIGN
+                     , CASE CONSTRAINT_TYPE WHEN 'CHECK' THEN 1 ELSE 0 END       AS IS_CHECK
+                FROM QSYS2.SYSCST CST
+                         JOIN QSYS2.SYSCSTCOL CSTCOL
+                              ON ( CST.CONSTRAINT_NAME, CST.CONSTRAINT_SCHEMA ) = ( CSTCOL.CONSTRAINT_NAME, CSTCOL.CONSTRAINT_SCHEMA)
+                WHERE CST.TABLE_NAME = ? and CST.TABLE_SCHEMA = CURRENT_SCHEMA"""
+        cursor.execute(sql, [table_name.upper()])
+        for constraint_name, column_name, is_primary, is_unique, is_foreign, is_check in cursor.fetchall():
+            constraints.setdefault(self.identifier_converter(constraint_name), {
+                'columns': [],
+                'primary_key': is_primary,
+                'unique': is_unique,
+                'foreign_key': is_foreign,
+                'check': is_check,
+                'index': False
+            })['columns'].append(self.identifier_converter(column_name))
 
-        sql = "SELECT KEYCOL.CONSTRAINT_NAME, KEYCOL.COLUMN_NAME FROM QSYS2.SYSKEYCST KEYCOL INNER JOIN QSYS2.SYSCST TABCONST ON KEYCOL.CONSTRAINT_NAME=TABCONST.CONSTRAINT_NAME WHERE TABCONST.TABLE_SCHEMA='%(schema)s' and TABCONST.TABLE_NAME='%(table)s' and TABCONST.TYPE='U'" % {
-            'schema': schema.upper(), 'table': table_name.upper()
-        }
-        cursor.execute(sql)
-        for constname, colname in cursor.fetchall():
-            if constname not in constraints:
-                constraints[constname] = {
-                    'columns': [],
-                    'primary_key': False,
-                    'unique': True,
-                    'foreign_key': None,
-                    'check': False,
-                    'index': True
-                }
-            constraints[constname]['columns'].append(self.identifier_converter(colname))
-
-        for pkey in cursor.primaryKeys(schema=schema, table=table_name):
-            if pkey.pk_name not in constraints:
-                constraints[pkey.pk_name] = {
-                    'columns': [],
-                    'primary_key': True,
-                    'unique': False,
-                    'foreign_key': None,
-                    'check': False,
-                    'index': True
-                }
-            constraints[pkey.pk_name]['columns'].append(self.identifier_converter(pkey.column_name))
-
-        for fk in cursor.foreignKeys(table=table_name.upper(), schema=schema):
-            if fk.fk_name not in constraints:
-                constraints[fk.fk_name] = {
-                    'columns': [],
-                    'primary_key': False,
-                    'unique': False,
-                    'foreign_key': (self.identifier_converter(fk.pktable_name), self.identifier_converter(fk.pkcolumn_name)),
-                    'check': False,
-                    'index': False
-                }
-            constraints[fk.fk_name]['columns'].append(self.identifier_converter(fk.fkcolumn_name))
-            if self.identifier_converter(fk.pkcolumn_name) not in constraints[fk.fk_name]['foreign_key']:
-                fkeylist = list(constraints[fk.fk_name]['foreign_key'])
-                fkeylist.append(self.identifier_converter(fk.pkcolumn_name))
-                constraints[fk.fk_name]['foreign_key'] = tuple(fkeylist)
-
-        sql = ("SELECT IDX.INDEX_NAME, K.COLUMN_NAME "
+        sql = ("SELECT IDX.INDEX_NAME, K.COLUMN_NAME, CASE IDX.IS_UNIQUE WHEN 'D' THEN 0 ELSE 1 END AS IS_UNIQUE "
                "  FROM QSYS2.SYSINDEXES IDX "
                "  JOIN QSYS2.SYSKEYS K ON ( IDX.INDEX_NAME, IDX.INDEX_SCHEMA ) = ( K.INDEX_NAME, K.INDEX_SCHEMA ) "
                " WHERE TABLE_NAME = ? "
-               "   AND TABLE_SCHEMA = ? "
+               "   AND TABLE_SCHEMA = CURRENT_SCHEMA "
                "ORDER BY IDX.INDEX_NAME, K.ORDINAL_POSITION")
-        indexes = cursor.execute(sql, [table_name.upper(), schema.upper()])
-        for index_name, column_name in indexes.fetchall():
-            if index_name not in constraints:
-                constraints[index_name] = {
-                    'columns': [],
-                    'primary_key': False,
-                    'unique': False,
-                    'foreign_key': None,
-                    'check': False,
-                    'index': True
-                }
-            elif constraints[index_name]['unique']:
-                continue
-            elif constraints[index_name]['primary_key']:
-                continue
-            constraints[index_name]['columns'].append(self.identifier_converter(column_name))
+        indexes = cursor.execute(sql, [table_name.upper()])
+        for index_name, column_name, is_unique in indexes.fetchall():
+            constraints.setdefault(self.identifier_converter(index_name), {
+                'columns': [],
+                'primary_key': False,
+                'unique': is_unique,
+                'foreign_key': None,
+                'check': False,
+                'index': True,
+            })['columns'].append(self.identifier_converter(column_name))
         return constraints
 
     def get_sequences(self, cursor, table_name, table_fields=()):
