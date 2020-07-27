@@ -62,24 +62,27 @@ class DatabaseIntrospection(BaseDatabaseIntrospection):
     def get_relations(self, cursor, table_name):
         relations = {}
         schema = cursor.get_current_schema()
-        for fk in cursor.foreignKeys(table=table_name.upper(), schema=schema):
-            relations[self.__get_col_index(cursor, schema, table_name, fk.FKCOLUMN_NAME)] = (
-                self.__get_col_index(cursor, schema, fk.PKTABLE_NAME, fk.PKCOLUMN_NAME),
-                self.identifier_converter(fk.PKTABLE_NAME))
+        foreign_keys = list(cursor.foreignKeys(table=table_name.upper(), schema=schema))
+        for fk in foreign_keys:
+            relations[self.__get_col_index(cursor, schema, table_name, fk.fkcolumn_name)] = (
+                self.__get_col_index(cursor, schema, fk.pktable_name, fk.pkcolumn_name),
+                self.identifier_converter(fk.pktable_name))
         return relations
 
     # Private method. Getting Index position of column by its name
     def __get_col_index(self, cursor, schema, table_name, col_name):
-        for col in cursor.columns(schema, table_name, [col_name]):
-            return col['ORDINAL_POSITION'] - 1
+        cols = cursor.columns(schema=schema, table=table_name, column=col_name)
+        for col in cols:
+            return col.ordinal_position - 1
 
     def get_key_columns(self, cursor, table_name):
         relations = []
         schema = cursor.get_current_schema()
-        for fk in cursor.foreignKeys(table=table_name.upper(), schema=schema):
-            relations.append((self.identifier_converter(fk.FKCOLUMN_NAME),
-                              self.identifier_converter(fk.PKTABLE_NAME),
-                              self.identifier_converter(fk.PKCOLUMN_NAME)))
+        foreign_keys = list(cursor.foreignKeys(table=table_name.upper(), schema=schema))
+        for fk in foreign_keys:
+            relations.append((self.identifier_converter(fk.fkcolumn_name),
+                              self.identifier_converter(fk.pktable_name),
+                              self.identifier_converter(fk.pkcolumn_name)))
         return relations
 
     # Getting the description of the table.
