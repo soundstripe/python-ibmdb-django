@@ -306,7 +306,7 @@ class DB2SchemaEditor(BaseDatabaseSchemaEditor):
         # Need to change Default
         if alter_field_default:
             if new_default is None:
-                if alter_field_data_type:
+                if alter_field_data_type or alter_field_nullable:
                     pass
                 else:
                     self.execute(self.sql_drop_default % {
