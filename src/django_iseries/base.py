@@ -27,13 +27,13 @@ from django.db.backends.base.base import BaseDatabaseWrapper
 from django.db.backends.base.features import BaseDatabaseFeatures
 from django.db.backends.base.validation import BaseDatabaseValidation
 
-from .. import django_iseries as Base
 # Importing internal classes from iseries package.
-from django.db.backends.iseries import DatabaseClient
-from django.db.backends.iseries import DatabaseCreation
-from django.db.backends.iseries import DatabaseIntrospection
-from django.db.backends.iseries import DatabaseOperations
-from django.db.backends.iseries.schemaEditor import DB2SchemaEditor
+from django_iseries.pybase import DatabaseWrapper as PyBaseDatabaseWrapper
+from django_iseries.client import DatabaseClient
+from django_iseries.creation import DatabaseCreation
+from django_iseries.introspection import DatabaseIntrospection
+from django_iseries.operations import DatabaseOperations
+from django_iseries.schemaEditor import DB2SchemaEditor
 from . import Database
 
 dbms_name = 'dbname'
@@ -172,7 +172,7 @@ class DatabaseWrapper(BaseDatabaseWrapper):
 
         self.introspection = DatabaseIntrospection(self)
         self.validation = DatabaseValidation(self)
-        self.databaseWrapper = Base.DatabaseWrapper()
+        self.databaseWrapper = PyBaseDatabaseWrapper()
 
     # Method to check if connection is live or not.
     def __is_connection(self):

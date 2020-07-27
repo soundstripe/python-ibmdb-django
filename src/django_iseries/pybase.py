@@ -29,7 +29,7 @@ from typing import Optional
 import sqlparse
 from django.db import utils
 
-from . import Database
+from django_iseries import Database
 
 dbms_name = 'dbms_name'
 

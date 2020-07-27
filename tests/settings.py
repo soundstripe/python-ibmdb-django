@@ -7,7 +7,7 @@ SECRET_KEY = [random.choice(string.ascii_lowercase) for i in range(10)]
 DATABASES = {
     'default':
         {
-            'ENGINE': 'iseries',
+            'ENGINE': 'django_iseries',
             'NAME': 'iseries',  # arbitrary database name for db2 on iseries
             'HOST': os.environ['TEST_SYSTEM_HOST'],
             'USER': os.environ['TEST_SYSTEM_USERNAME'],

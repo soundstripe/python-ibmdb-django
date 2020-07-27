@@ -28,7 +28,7 @@ from django.utils import timezone
 from django.utils.functional import cached_property
 from django.utils.timezone import is_aware, utc
 
-from django.db.backends.iseries import query
+from django_iseries import query
 
 dbms_name = 'dbms_name'
 
@@ -38,7 +38,7 @@ class DatabaseOperations(BaseDatabaseOperations):
         super(DatabaseOperations, self).__init__(self)
         self.connection = connection
 
-    compiler_module = "iseries.compiler"
+    compiler_module = "django_iseries.compiler"
 
     def cache_key_culling_sql(self):
         return '''select cache_key 

@@ -1,7 +1,7 @@
 import pytest
 from django.core.exceptions import ImproperlyConfigured
 
-from django.db.backends.iseries import DatabaseCreation
+from django_iseries.creation import DatabaseCreation
 from tests.models import Object, ObjectReference
 
 
