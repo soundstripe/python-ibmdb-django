@@ -102,7 +102,7 @@ class DatabaseIntrospection(BaseDatabaseIntrospection):
                           , STORAGE             AS INTERNAL_SIZE
                           , NUMERIC_PRECISION
                           , NUMERIC_SCALE
-                          , IS_NULLABLE
+                          , CASE IS_NULLABLE WHEN 'Y' THEN 1 ELSE 0 END AS IS_NULLABLE
                      FROM QSYS2.SYSCOLUMNS C
                      WHERE TABLE_NAME = ?
                        AND TABLE_SCHEMA = CURRENT_SCHEMA
