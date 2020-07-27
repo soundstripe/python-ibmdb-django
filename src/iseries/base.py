@@ -27,13 +27,13 @@ from django.db.backends.base.base import BaseDatabaseWrapper
 from django.db.backends.base.features import BaseDatabaseFeatures
 from django.db.backends.base.validation import BaseDatabaseValidation
 
-import iseries.pybase as Base
+from .. import django_iseries as Base
 # Importing internal classes from iseries package.
-from iseries.client import DatabaseClient
-from iseries.creation import DatabaseCreation
-from iseries.introspection import DatabaseIntrospection
-from iseries.operations import DatabaseOperations
-from iseries.schemaEditor import DB2SchemaEditor
+from django.db.backends.iseries import DatabaseClient
+from django.db.backends.iseries import DatabaseCreation
+from django.db.backends.iseries import DatabaseIntrospection
+from django.db.backends.iseries import DatabaseOperations
+from django.db.backends.iseries.schemaEditor import DB2SchemaEditor
 from . import Database
 
 dbms_name = 'dbname'

@@ -1,3 +1,5 @@
+"""Db2 for iSeries support for Django framework."""
+
 __version__ = "1.0.0"
 
 try:

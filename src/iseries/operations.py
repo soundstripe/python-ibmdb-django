@@ -21,7 +21,6 @@ import datetime
 import uuid
 from functools import lru_cache
 
-import pytz
 from django.conf import settings
 from django.db import utils
 from django.db.backends.base.operations import BaseDatabaseOperations
@@ -29,7 +28,7 @@ from django.utils import timezone
 from django.utils.functional import cached_property
 from django.utils.timezone import is_aware, utc
 
-from iseries import query
+from django.db.backends.iseries import query
 
 dbms_name = 'dbms_name'
 

@@ -17,12 +17,17 @@
 
 import sys
 
-from setuptools import setup, find_packages
+from setuptools import setup, find_packages, find_namespace_packages
 from distutils.core import setup, Extension
 
 PACKAGE = 'django-pyodbc-iseries'
-VERSION = __import__('iseries').__version__
+# VERSION = __import__('django_iseries').__version__
+VERSION = '1.0.0'
 LICENSE = 'Apache License 2.0'
+# DESCRIPTION = __import__('django_iseries').__doc__
+DESCRIPTION = ''
+
+print(find_packages(where='src'))
 
 setup(
     name=PACKAGE,
@@ -32,15 +37,16 @@ setup(
     install_requires=['pyodbc>=4.0.27', 'django>=2.2.0', 'pytz', 'sqlparse'],
     dependency_links=['https://pypi.org/project/pyodbc/', 'http://pypi.python.org/pypi/Django/',
                       'https://www.ibm.com/support/pages/ibm-i-access-client-solutions'],
-    description='Db2 for iSeries support for Django framework.',
-    long_description='Db2 for iSeries support for Django framework.',
+    description=DESCRIPTION,
+    long_description=DESCRIPTION,
     author='Ambrish Bhargava, Tarun Pasrija, Rahul Priyadarshi, Steven James',
     author_email='steven@waitforitjames.com',
     maintainer='Steven James',
     maintainer_email='steven@waitforitjames.com',
     url='https://github.com/soundstripe/django-pyodbc-iseries',
     keywords='django iseries backends adapter IBM Data Servers database db2',
-    packages=find_packages(),
+    package_dir={'': 'src'},
+    packages=find_packages(where='src'),
     classifiers=['Development Status :: 4 - Beta',
                  'Intended Audience :: Developers',
                  'License :: OSI Approved :: Apache Software License',
@@ -54,7 +60,7 @@ setup(
                 ('', ['./LICENSE'])],
     zip_safe=False,
     include_package_data=True,
-    entry_points={
-        'django.db.backends': ['iseries = iseries']
-    },
+    # entry_points={
+    #     'django.db.backends': ['iseries = django_iseries']
+    # },
 )
