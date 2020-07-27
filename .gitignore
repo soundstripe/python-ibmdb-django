@@ -266,3 +266,4 @@ dmypy.json
 # Cython debug symbols
 cython_debug/
 
+ibm*.deb
