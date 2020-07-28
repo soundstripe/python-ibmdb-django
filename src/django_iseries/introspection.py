@@ -70,12 +70,6 @@ class DatabaseIntrospection(BaseDatabaseIntrospection):
             )
         return relations
 
-    # Private method. Getting Index position of column by its name
-    def __get_col_index(self, cursor, schema, table_name, col_name):
-        cols = cursor.columns(schema=schema, table=table_name, column=col_name)
-        for col in cols:
-            return col.ordinal_position - 1
-
     def get_key_columns(self, cursor, table_name):
         relations = []
         schema = cursor.get_current_schema()
