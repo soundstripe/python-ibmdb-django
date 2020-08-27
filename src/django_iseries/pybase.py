@@ -106,7 +106,7 @@ class DatabaseWrapper:
         return connection
 
     def is_active(self, connection=None):
-        return Database.ibm_db.active(connection.conn_handler)
+        return bool(connection.cursor())
 
     # Over-riding _cursor method to return DB2 cursor.
     def _cursor(self, connection):
