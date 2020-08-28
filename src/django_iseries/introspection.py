@@ -89,6 +89,13 @@ class DatabaseIntrospection(BaseDatabaseIntrospection):
         cursor.execute(sql, [table_name.upper()])
         table_type = cursor.fetchone()[0]
 
+        schema = None
+        if table_type == 'A':  # alias
+            sql = """SELECT BASENAME, BASESCHEMA
+                       FROM TABLE( SYSPROC.BASE_TABLE( CURRENT_SCHEMA, ? ) ) AS X"""
+            cursor.execute(sql, [table_name.upper()])
+            table_name, schema = cursor.fetchone()
+
         if table_type != 'X':
             sql = """SELECT TRIM( COLUMN_NAME ) AS COLUMN_NAME
                           , TRIM( DATA_TYPE )   AS DATA_TYPE
@@ -99,9 +106,9 @@ class DatabaseIntrospection(BaseDatabaseIntrospection):
                           , CASE IS_NULLABLE WHEN 'Y' THEN 1 ELSE 0 END AS IS_NULLABLE
                      FROM QSYS2.SYSCOLUMNS C
                      WHERE TABLE_NAME = ?
-                       AND TABLE_SCHEMA = CURRENT_SCHEMA
+                       AND TABLE_SCHEMA = COALESCE(?, CURRENT_SCHEMA)
                      ORDER BY ORDINAL_POSITION"""
-            column_descriptions = cursor.execute(sql, [table_name.upper()])
+            column_descriptions = cursor.execute(sql, [table_name.upper(), schema])
 
             for desc in column_descriptions:
                 description.append(FieldInfo(
