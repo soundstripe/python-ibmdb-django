@@ -121,7 +121,17 @@ class DatabaseIntrospection(BaseDatabaseIntrospection):
 
     def get_constraints(self, cursor, table_name):
         constraints = {}
-        schema = cursor.get_current_schema()
+        schema = None
+        sql = "SELECT TYPE FROM QSYS2.SYSTABLES WHERE TABLE_SCHEMA=CURRENT_SCHEMA AND TABLE_NAME=?"
+        cursor.execute(sql, [table_name.upper()])
+        table_type = cursor.fetchone()[0]
+
+        schema = None
+        if table_type == 'A':  # alias
+            sql = """SELECT BASENAME, BASESCHEMA
+                       FROM TABLE( SYSPROC.BASE_TABLE( CURRENT_SCHEMA, ? ) ) AS X"""
+            cursor.execute(sql, [table_name.upper()])
+            table_name, schema = cursor.fetchone()
 
         sql = """SELECT CST.CONSTRAINT_NAME
                      , COLUMN_NAME
