@@ -1,6 +1,6 @@
 """Db2 for iSeries support for Django framework."""
 
-__version__ = "1.0.3"
+__version__ = "1.0.4"
 
 try:
     import pyodbc as Database
