@@ -45,8 +45,8 @@ NotSupportedError = Database.NotSupportedError
 
 
 FORMAT_QMARK_REGEX = re.compile(r'(?<!%)%s')
-SQLCODE_0530_REGEX = re.compile("^(\[.+\] *){4}SQL0530.*")
-SQLCODE_0910_REGEX = re.compile("^(\[.+\] *){4}SQL0910.*")
+SQLCODE_0530_REGEX = re.compile(r"^(\[.+] *){4}SQL0530.*")
+SQLCODE_0910_REGEX = re.compile(r"^(\[.+] *){4}SQL0910.*")
 
 
 class DatabaseWrapper:
@@ -124,6 +124,7 @@ class DatabaseWrapper:
     def get_server_version(self, connection):
         self.connection = connection
         if not self.connection:
+            # pylint: disable=(no-member)
             self.cursor()
         return tuple(int(version) for version in self.connection.server_info()[1].split("."))
 
@@ -189,7 +190,7 @@ class DB2CursorWrapper:
                 raise utils.IntegrityError(*e.args, execute.func, *execute.args)
             elif e.args[0] == 'HY000' and SQLCODE_0910_REGEX.match(e.args[1]):
                 # file in use error (likely in the same transaction)
-                query, params, *_ = execute.args
+                query, _params, *_ = execute.args
                 if query.startswith('ALTER TABLE') and 'RESTART WITH' in query:
                     raise utils.ProgrammingError(
                         *e.args,
