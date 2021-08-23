@@ -129,6 +129,8 @@ class DatabaseOperations(BaseDatabaseOperations):
         return "DATE(%s)" % field_name
 
     def field_cast_sql(self, db_type, internal_type):
+        if db_type == 'SMALLINT' and internal_type == 'BooleanField':
+            return 'coalesce((select 1 from sysibm.sysdummy1 where %s), 0)'
         return super().field_cast_sql(db_type, internal_type)
 
     # Function to extract day, month or year from the date.
