@@ -19,8 +19,12 @@
 import sys
 
 from django.db.models.sql import compiler
+from django.conf import settings
 
 from itertools import zip_longest
+
+
+ENFORCE_AUTOCOMMIT = getattr(settings, 'DJANGO_ISERIES_ENFORCE_AUTOCOMMIT', False)
 
 
 class SQLCompiler(compiler.SQLCompiler):
@@ -34,6 +38,8 @@ class SQLInsertCompiler(compiler.SQLInsertCompiler, SQLCompiler):
         qn = self.connection.ops.quote_name
         opts = self.query.get_meta()
         sql = f'SELECT {qn(opts.pk.column)} FROM FINAL TABLE ({sql})'
+        if ENFORCE_AUTOCOMMIT:
+            sql = f'{sql} WITH NONE'
         return [(sql, params)]
 
 
@@ -42,7 +48,11 @@ class SQLDeleteCompiler(compiler.SQLDeleteCompiler, SQLCompiler):
 
 
 class SQLUpdateCompiler(compiler.SQLUpdateCompiler, SQLCompiler):
-    pass
+    def as_sql(self):
+        sql, params = super().as_sql()
+        if ENFORCE_AUTOCOMMIT:
+            sql = f'{sql} WITH NONE'
+        return sql, params
 
 
 class SQLAggregateCompiler(compiler.SQLAggregateCompiler, SQLCompiler):
