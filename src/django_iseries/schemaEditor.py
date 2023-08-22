@@ -435,7 +435,7 @@ class DB2SchemaEditor(BaseDatabaseSchemaEditor):
                 self.execute(
                     self.sql_create_fk % {
                         'table': self.quote_name(model._meta.db_table),
-                        'name': self._create_index_name(model, [new_field.column], suffix="_fk"),
+                        'name': self._create_index_name(self.quote_name(model._meta.db_table), [new_field.column], suffix="_fk"),
                         'column': self.quote_name(new_field.column),
                         'to_table': self.quote_name(new_field.remote_field.model._meta.db_table),
                         'to_column': self.quote_name(new_field.remote_field.get_related_field().column),
